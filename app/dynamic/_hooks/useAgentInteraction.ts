@@ -3,12 +3,12 @@ import {
     useVoiceAssistant,
     useLocalParticipant,
     useRoomContext,
-    useChat,
     type TrackReferenceOrPlaceholder
 } from '@livekit/components-react';
 import { Track, RoomEvent, type TranscriptionSegment, type Participant } from 'livekit-client';
 
 export type AgentState = 'listening' | 'speaking' | 'thinking' | 'idle';
+export type InteractionMode = 'voice' | 'text';
 
 // Reusing the message structure/logic but simplified for this hook
 export interface ChatMessage {
@@ -28,39 +28,20 @@ export function useAgentInteraction() {
     const { state, audioTrack: agentTrack } = useVoiceAssistant();
     const { localParticipant, microphoneTrack } = useLocalParticipant();
     const room = useRoomContext();
+    const [mode, setInteractionMode] = useState<InteractionMode>('voice');
 
-    // Auto-enable microphone on mount/connect (from modular implementation)
+    // Exclusive Mode Management
     useEffect(() => {
-        if (localParticipant) {
+        if (!localParticipant) return;
+
+        if (mode === 'voice') {
             localParticipant.setMicrophoneEnabled(true);
+        } else {
+            localParticipant.setMicrophoneEnabled(false);
         }
-    }, [localParticipant]);
+    }, [localParticipant, mode]);
 
-    // We can use useChat for basic text, but stricter control via Events is often better for custom agents
-    // For now, let's implement a custom message handler similar to the modular one
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-    // --- Message Handling ---
-    const handleTranscription = useCallback(
-        (segments: TranscriptionSegment[], participant?: Participant) => {
-            if (!participant) return;
-            const senderIsAgent = participant.identity !== localParticipant?.identity;
-
-            setMessages((prev) => {
-                const newMessages = [...prev];
-                // basic logic: find existing interim and update, or push new
-                // For simplicity in this demo, we'll just push finalized ones or update tail
-                // A more robust map-based approach (like in original) is better for updates
-
-                // Let's stick to the map approach internally but expose array
-                return newMessages; // Placeholder, see useEffect below
-            });
-        },
-        [localParticipant]
-    );
-
-    // Re-implementing the Map-based logic for robustness inside the effect or a ref
-    // Using a Ref to hold the map to avoid heavy state updates, then sync to state
+    // Map-based logic for transcription + data messages
     const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
 
     useEffect(() => {
@@ -87,13 +68,11 @@ export function useAgentInteraction() {
         };
 
         const onData = (payload: Uint8Array, participant?: Participant, _kind?: any, topic?: string) => {
-            // topic check if your backend sends it
-            // Simple fallback decode
             const strData = new TextDecoder().decode(payload);
             try {
                 const data = JSON.parse(strData);
-                // Assuming standard format: { type: 'flashcard', title: '...', value: '...' }
-                if (data.type === 'flashcard' || topic === 'ui.flashcard') {
+                // Check either topic or data type for flashcards
+                if (topic === 'ui.flashcard' || data.type === 'flashcard') {
                     const id = `card-${Date.now()}-${Math.random()}`;
                     setMessagesMap((prev) => {
                         const next = new Map(prev);
@@ -101,7 +80,7 @@ export function useAgentInteraction() {
                             id,
                             type: 'flashcard',
                             cardData: {
-                                title: data.title || "Info",
+                                title: data.title || "Information",
                                 value: data.value || JSON.stringify(data)
                             },
                             sender: 'agent',
@@ -111,7 +90,23 @@ export function useAgentInteraction() {
                         return next;
                     });
                 }
-            } catch (e) { /* ignore non-json */ }
+                // Check for agent text responses if transmitted via data channel
+                else if (topic === 'ui.text' || data.type === 'agent_chat') {
+                    const id = `agent-${Date.now()}`;
+                    setMessagesMap((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'text',
+                            text: data.text || data.message || strData,
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false
+                        });
+                        return next;
+                    });
+                }
+            } catch (e) { /* ignore non-json or noise */ }
         };
 
         room.on(RoomEvent.TranscriptionReceived, onTranscription);
@@ -161,20 +156,23 @@ export function useAgentInteraction() {
     // --- Actions ---
     const toggleMic = useCallback((mute: boolean) => {
         if (localParticipant) {
+            // Mute = User wants silence. If they unmute, they enter Voice mode.
+            if (!mute) {
+                setInteractionMode('voice');
+            }
             localParticipant.setMicrophoneEnabled(!mute);
         }
     }, [localParticipant]);
 
     const sendText = useCallback(async (text: string) => {
         if (localParticipant) {
-            // Publish data to the room, backend handles it as text input
-            // Standard pattern: encode text and send
-            const encoder = new TextEncoder();
-            const data = encoder.encode(JSON.stringify({ type: 'user_chat', text }));
-            await localParticipant.publishData(data, { reliable: true });
+            // Activating text mode
+            setInteractionMode('text');
 
-            // Optimistically add to UI? or wait for echo?
-            // Let's add optimistically for better UI feel
+            // Standard LiveKit Text Stream
+            await localParticipant.sendText(text, { topic: 'lk.chat' });
+
+            // Optimistically add to UI
             const id = `local-${Date.now()}`;
             setMessagesMap((prev) => {
                 const next = new Map(prev);
@@ -193,6 +191,8 @@ export function useAgentInteraction() {
 
     return {
         agentState,
+        mode,
+        setInteractionMode,
         messages: sortedMessages,
         activeTrack, // Agent audio
         userTrack,   // User mic

@@ -10,7 +10,7 @@ export function useLiveKitConnection() {
     const [isConnecting, setIsConnecting] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
-    const connect = useCallback(async (agentName: string = 'bandhan_banking') => {
+    const connect = useCallback(async (agentName: string = 'web') => {
         setIsConnecting(true);
         setError(null);
         try {

@@ -11,6 +11,8 @@ interface AgentInterfaceProps {
 export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) => {
     const {
         agentState,
+        mode,
+        setInteractionMode,
         messages,
         activeTrack,
         userTrack,
@@ -36,9 +38,15 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     };
 
     const handleMicToggle = () => {
-        const newState = !isMuted;
-        setIsMuted(newState);
-        toggleMic(newState);
+        if (mode === 'text') {
+            setInteractionMode('voice');
+            setIsMuted(false);
+            toggleMic(false);
+        } else {
+            const newState = !isMuted;
+            setIsMuted(newState);
+            toggleMic(newState);
+        }
     };
 
     return (
@@ -96,9 +104,11 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                         {/* Mic Toggle */}
                         <button
                             onClick={handleMicToggle}
-                            className={`group relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 ${isMuted
-                                ? 'bg-red-50 text-red-500 hover:bg-red-100'
-                                : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                            className={`group relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 ${mode === 'voice' && !isMuted
+                                ? 'bg-zinc-900 text-white hover:bg-zinc-700'
+                                : mode === 'voice' && isMuted
+                                    ? 'bg-red-50 text-red-500 hover:bg-red-100'
+                                    : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
                                 }`}
                             title={isMuted ? "Unmute" : "Mute"}
                         >
@@ -116,14 +126,26 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                         </button>
 
                         {/* Input Field */}
-                        <div className="relative flex items-center group/input">
+                        <div className="relative flex items-center group/input px-2 transition-all duration-300">
+                            {mode === 'voice' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-zinc-400 opacity-0 transition-all group-hover/input:opacity-100">
+                                    <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
+                                </svg>
+                            )}
                             <input
                                 type="text"
                                 value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
+                                onChange={(e) => {
+                                    setInputText(e.target.value);
+                                    if (mode !== 'text') setInteractionMode('text');
+                                }}
+                                onFocus={() => {
+                                    if (mode !== 'text') setInteractionMode('text');
+                                }}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Message agent..."
-                                className="w-[140px] bg-transparent px-2 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all sm:w-[220px]"
+                                placeholder={mode === 'voice' ? "Switch to text..." : "Message agent..."}
+                                className={`w-[140px] bg-transparent px-2 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all sm:w-[220px] ${mode === 'voice' ? 'cursor-text' : ''
+                                    }`}
                             />
                             <button
                                 onClick={handleSend}

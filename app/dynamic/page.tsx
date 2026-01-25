@@ -11,7 +11,7 @@ const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 
 export default function DynamicPage() {
   const router = useRouter();
-  const { token, isConnecting, error, connect, disconnect } = useLiveKitConnection();
+  const { token, error, connect, disconnect } = useLiveKitConnection();
 
   const handleDisconnect = () => {
     disconnect();
@@ -114,4 +114,3 @@ export default function DynamicPage() {
     </div>
   );
 }
-
