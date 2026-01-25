@@ -136,15 +136,15 @@ export function useAgentInteraction() {
     // 'thinking' is not a default state in standard hook, but we can infer if needed
 
     const activeTrack = useMemo(() => {
-        if (state === 'speaking' && agentTrack?.publication) {
+        if (agentTrack?.publication) {
             return {
                 participant: agentTrack.participant,
-                source: Track.Source.Unknown,
+                source: Track.Source.Microphone, // Agents usually act as microphone sources
                 publication: agentTrack.publication
             } as TrackReferenceOrPlaceholder;
         }
-        return undefined; // We might want user track for visualizer when user speaks
-    }, [state, agentTrack]);
+        return undefined;
+    }, [agentTrack]);
 
     const userTrack = useMemo(() => {
         if (localParticipant && microphoneTrack) {

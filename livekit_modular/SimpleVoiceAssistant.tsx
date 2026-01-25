@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLiveKitAssistant } from './useLiveKitAssistant';
 import { LiveKitAssistantProvider } from './LiveKitAssistantProvider';
 
@@ -14,8 +14,11 @@ export const SimpleVoiceAssistant: React.FC = () => {
         connect,
         disconnect,
         toggleMic,
-        isMicMuted
+        isMicMuted,
+        sendText
     } = useLiveKitAssistant();
+
+    const [inputText, setInputText] = useState('');
 
     return (
         <div className="voice-assistant-container">
@@ -60,6 +63,33 @@ export const SimpleVoiceAssistant: React.FC = () => {
                                     {msg.text}
                                 </div>
                             ))}
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                            <input
+                                type="text"
+                                value={inputText}
+                                onChange={(event) => setInputText(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' && inputText.trim()) {
+                                        sendText(inputText);
+                                        setInputText('');
+                                    }
+                                }}
+                                placeholder="Type a message"
+                                className="flex-1 rounded border px-3 py-2 text-sm"
+                            />
+                            <button
+                                className="px-4 py-2 bg-slate-800 text-white rounded"
+                                onClick={() => {
+                                    if (!inputText.trim()) return;
+                                    sendText(inputText);
+                                    setInputText('');
+                                }}
+                                disabled={!inputText.trim()}
+                            >
+                                Send
+                            </button>
                         </div>
                     </div>
                 </LiveKitAssistantProvider>

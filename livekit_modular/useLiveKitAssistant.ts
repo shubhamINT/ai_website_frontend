@@ -21,9 +21,10 @@ export interface LiveKitAssistantHook {
     connect: (agentName?: string) => Promise<void>;
     disconnect: () => void;
     toggleMic: () => void;
+    sendText: (text: string) => Promise<void>;
 }
 
-const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+const BACKEND_URL = process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 const TOKEN_ENDPOINT = `${BACKEND_URL}/api/getToken`;
 
 export function useLiveKitAssistant(): LiveKitAssistantHook {
@@ -35,7 +36,7 @@ export function useLiveKitAssistant(): LiveKitAssistantHook {
     const { state, audioTrack: agentTrack } = useVoiceAssistant();
     const { localParticipant, microphoneTrack } = useLocalParticipant();
     const room = useRoomContext();
-    const messages = useLiveKitTranscriptions();
+    const { messages, addLocalMessage } = useLiveKitTranscriptions();
 
     // Auto-enable microphone on mount/connect
     useEffect(() => {
@@ -81,6 +82,24 @@ export function useLiveKitAssistant(): LiveKitAssistantHook {
         setIsMicMuted(newVal);
     }, [localParticipant, isMicMuted]);
 
+    const sendText = useCallback(async (text: string) => {
+        if (!localParticipant || !room) return;
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        const payload = new TextEncoder().encode(JSON.stringify({
+            type: 'user_text',
+            text: trimmed
+        }));
+
+        await localParticipant.publishData(payload, {
+            reliable: true,
+            topic: 'ui.text'
+        });
+
+        addLocalMessage(trimmed);
+    }, [localParticipant, room, addLocalMessage]);
+
     const userTrackRef = useMemo(() => {
         if (!localParticipant) return undefined;
         return {
@@ -122,6 +141,7 @@ export function useLiveKitAssistant(): LiveKitAssistantHook {
         messages,
         connect,
         disconnect,
-        toggleMic
+        toggleMic,
+        sendText
     };
 }

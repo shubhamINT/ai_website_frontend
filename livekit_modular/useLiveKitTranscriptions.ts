@@ -16,7 +16,12 @@ export interface ChatMessage {
     timestamp: number;
 }
 
-export function useLiveKitTranscriptions() {
+export interface LiveKitTranscriptionsHook {
+    messages: ChatMessage[];
+    addLocalMessage: (text: string) => void;
+}
+
+export function useLiveKitTranscriptions(): LiveKitTranscriptionsHook {
     const room = useRoomContext();
     const { localParticipant } = useLocalParticipant();
     const [messages, setMessages] = useState<Map<string, ChatMessage>>(new Map());
@@ -45,35 +50,66 @@ export function useLiveKitTranscriptions() {
     );
 
     const handleData = useCallback(
-        (payload: Uint8Array, _participant?: Participant, _kind?: any, topic?: string) => {
-            if (topic !== "ui.flashcard") return;
+        (payload: Uint8Array, participant?: Participant, _kind?: any, topic?: string) => {
+            if (!topic) return;
 
+            const senderIsAgent = participant?.identity !== localParticipant?.identity;
             const strData = new TextDecoder().decode(payload);
-            try {
-                const data = JSON.parse(strData);
-                if (data.type === 'flashcard') {
-                    const id = `card-${Date.now()}`;
-                    setMessages((prev) => {
-                        const next = new Map(prev);
-                        next.set(id, {
-                            id: id,
-                            type: 'flashcard',
-                            cardData: {
-                                title: data.title,
-                                value: data.value
-                            },
-                            sender: 'agent',
-                            timestamp: Date.now(),
-                            isInterim: false
+
+            if (topic === 'ui.flashcard') {
+                try {
+                    const data = JSON.parse(strData);
+                    if (data.type === 'flashcard') {
+                        const id = `card-${Date.now()}`;
+                        setMessages((prev) => {
+                            const next = new Map(prev);
+                            next.set(id, {
+                                id,
+                                type: 'flashcard',
+                                cardData: {
+                                    title: data.title,
+                                    value: data.value
+                                },
+                                sender: 'agent',
+                                timestamp: Date.now(),
+                                isInterim: false
+                            });
+                            return next;
                         });
-                        return next;
-                    });
+                    }
+                } catch (e) {
+                    console.error(e);
                 }
-            } catch (e) {
-                console.error(e);
+                return;
+            }
+
+            if (topic === 'ui.text') {
+                let text = strData;
+                try {
+                    const data = JSON.parse(strData);
+                    if (typeof data?.text === 'string') {
+                        text = data.text;
+                    }
+                } catch {
+                    // fall back to raw text
+                }
+
+                const id = `text-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                setMessages((prev) => {
+                    const next = new Map(prev);
+                    next.set(id, {
+                        id,
+                        type: 'text',
+                        text,
+                        sender: senderIsAgent ? 'agent' : 'user',
+                        timestamp: Date.now(),
+                        isInterim: false
+                    });
+                    return next;
+                });
             }
         },
-        []
+        [localParticipant]
     );
 
     useEffect(() => {
@@ -86,5 +122,26 @@ export function useLiveKitTranscriptions() {
         };
     }, [room, handleTranscription, handleData]);
 
-    return Array.from(messages.values()).sort((a, b) => a.timestamp - b.timestamp);
+    const addLocalMessage = useCallback((text: string) => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        const id = `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        setMessages((prev) => {
+            const next = new Map(prev);
+            next.set(id, {
+                id,
+                type: 'text',
+                text: trimmed,
+                sender: 'user',
+                isInterim: false,
+                timestamp: Date.now()
+            });
+            return next;
+        });
+    }, []);
+
+    return {
+        messages: Array.from(messages.values()).sort((a, b) => a.timestamp - b.timestamp),
+        addLocalMessage
+    };
 }
