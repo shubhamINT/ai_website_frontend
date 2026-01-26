@@ -43,6 +43,14 @@ export function useAgentInteraction() {
     const room = useRoomContext();
     const [mode, setInteractionMode] = useState<InteractionMode>('voice');
 
+    // Message State
+    const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
+
+    // Derived array
+    const sortedMessages = useMemo(() => {
+        return Array.from(messagesMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+    }, [messagesMap]);
+
     // Exclusive Mode Management
     useEffect(() => {
         if (!localParticipant) return;
@@ -54,39 +62,57 @@ export function useAgentInteraction() {
         }
     }, [localParticipant, mode]);
 
-    // UI Context Sync to Backend
+    // UI Context Sync to Backend (Snapshot Protocol)
     const syncUIContext = useCallback(() => {
         if (!localParticipant || !room || room.state !== 'connected') return;
 
         const isMobile = window.innerWidth < 768;
+
+        // Extract recent flashcards to provide visual context to the agent
+        const visibleCards = sortedMessages
+            .filter(m => m.type === 'flashcard')
+
+            
+            .slice(-5) // Backend only needs the most recent/relevant ones
+            .map(m => ({
+                id: m.id,
+                type: m.type,
+                title: m.cardData?.title,
+                summary: m.cardData?.value?.substring(0, 100) + (m.cardData?.value && m.cardData.value.length > 100 ? '...' : '')
+            }));
+
         const context = {
-            type: 'ui.context',
-            screen: isMobile ? 'mobile' : 'desktop',
-            density: isMobile ? 'compact' : 'comfortable',
-            cardSize: isMobile ? 'sm' : 'md',
-            maxChars: isMobile ? 150 : 300,
-            theme: 'light' // Defaulting to light as per page.tsx background
+            type: 'ui.context_sync',
+            timestamp: Date.now(),
+            viewport: {
+                screen: isMobile ? 'mobile' : 'desktop',
+                density: isMobile ? 'compact' : 'comfortable',
+                theme: 'light',
+                capabilities: {
+                    canRenderCards: true,
+                    maxVisibleCards: isMobile ? 1 : 4
+                }
+            },
+            active_elements: visibleCards
         };
 
         const encoder = new TextEncoder();
-        console.log('--- SYNCING UI CONTEXT TO BACKEND ---', context);
+        console.log('--- SYNCING UI CONTEXT (SNAPSHOT) ---', context);
         localParticipant.publishData(encoder.encode(JSON.stringify(context)), {
             reliable: true,
             topic: 'ui.context'
         });
-    }, [localParticipant, room]);
+    }, [localParticipant, room, sortedMessages]);
 
     useEffect(() => {
         if (room?.state === 'connected') {
-            // Sync when agent is present
+            // Initial sync when agent is present
             if (agentTrack) {
                 console.log('--- AGENT JOINED, SYNCING UI CONTEXT ---');
                 syncUIContext();
-            } else {
-                console.log('--- ROOM CONNECTED, WAITING FOR AGENT TO JOIN... ---');
             }
 
-            // Sync on resize (debounced slightly)
+            // Sync on resize (debounced)
             let timeout: NodeJS.Timeout;
             const handleResize = () => {
                 clearTimeout(timeout);
@@ -100,8 +126,13 @@ export function useAgentInteraction() {
         }
     }, [room?.state, !!agentTrack, syncUIContext]);
 
-    // Map-based logic for transcription + data messages
-    const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
+    // Sync when flashcards are added/updated
+    useEffect(() => {
+        const lastCard = sortedMessages.filter(m => m.type === 'flashcard').pop();
+        if (lastCard && room?.state === 'connected') {
+            syncUIContext();
+        }
+    }, [sortedMessages.length, room?.state, syncUIContext]);
 
     useEffect(() => {
         if (!room) return;
@@ -183,12 +214,6 @@ export function useAgentInteraction() {
             room.off(RoomEvent.DataReceived, onData);
         };
     }, [room, localParticipant]);
-
-    // Derived array
-    const sortedMessages = useMemo(() => {
-        return Array.from(messagesMap.values()).sort((a, b) => a.timestamp - b.timestamp);
-    }, [messagesMap]);
-
 
     // --- State & Tracks ---
     // Simple state mapping
