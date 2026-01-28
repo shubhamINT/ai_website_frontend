@@ -208,7 +208,7 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
                     </div>
                 </div>
 
-                {/* Footer Section */}
+                {/* Footer Section
                 <div className="flex items-center justify-between border-t border-zinc-100/10 pt-4">
                     <div className="flex gap-1.5">
                         <div className={`h-1.5 w-1.5 rounded-full ${colors.bg} ${colors.text.replace('text', 'bg')}`} />
@@ -218,7 +218,7 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
                         Action Needed
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
                     </button>
-                </div>
+                </div> */}
             </div>
 
             {/* Premium Textures & Overlays */}
