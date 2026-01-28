@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../_hooks/useAgentInteraction';
 import { ThreeJSVisualizer } from './ThreeJSVisualizer';
 import { Flashcard } from './Flashcard';
@@ -44,7 +45,7 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
 const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     if (cards.length === 0) return null;
 
-    // Filter out cards without cardData with proper type guard
+    // Filter out cards without cardData
     const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
         card && card.cardData !== undefined && card.cardData.title !== undefined
     );
@@ -52,64 +53,39 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
 
     return (
         <div className="relative flex w-full max-w-7xl flex-col items-center">
-            <style jsx>{`
-                @keyframes card-enter {
-                    0% {
-                        opacity: 0;
-                        transform: scale(0.9) translateY(30px);
-                        filter: blur(10px);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: scale(1) translateY(0);
-                        filter: blur(0);
-                    }
-                }
-                .card-animation {
-                    animation: card-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                }
-                .stagger-1 { animation-delay: 0.1s; }
-                .stagger-2 { animation-delay: 0.2s; }
-                .stagger-3 { animation-delay: 0.3s; }
-                .stagger-4 { animation-delay: 0.4s; }
-            `}</style>
-
             {/* Grid layout for multiple cards */}
-            <div className={`relative z-10 w-full px-4 md:px-6 grid gap-6 ${validCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
-                validCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
-                    validCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-                        'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                }`}>
-                {validCards.map((card, idx) => (
-                    <div
-                        key={card.id}
-                        className={`card-animation ${idx === 0 ? '' :
-                            idx === 1 ? 'stagger-1' :
-                                idx === 2 ? 'stagger-2' :
-                                    idx === 3 ? 'stagger-3' :
-                                        'stagger-4'
-                            }`}
-                        style={{
-                            animationDelay: `${idx * 0.1}s`,
-                            opacity: 0,
-                            animationFillMode: 'forwards'
-                        }}
-                    >
-                        <Flashcard
-
-                            {...card.cardData}
-                        />
-                    </div>
-                ))}
-            </div>
+            <motion.div
+                layout
+                className={`relative z-10 w-full px-4 md:px-6 grid gap-6 ${validCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
+                    validCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
+                        validCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                            'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                    }`}
+            >
+                <AnimatePresence mode="popLayout">
+                    {validCards.map((card) => (
+                        <motion.div
+                            layout
+                            key={card.id}
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        >
+                            <Flashcard {...card.cardData} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </motion.div>
 
             {/* Optional card count indicator */}
             {validCards.length > 1 && (
                 <div className="mt-6 flex items-center gap-2 rounded-full bg-white/40 px-4 py-2 backdrop-blur-xl ring-1 ring-black/5 shadow-lg">
                     <div className="flex gap-1.5">
                         {validCards.map((_, idx) => (
-                            <div
+                            <motion.div
                                 key={idx}
+                                layoutId={`dot-${idx}`}
                                 className="h-1.5 w-1.5 rounded-full bg-zinc-400"
                             />
                         ))}

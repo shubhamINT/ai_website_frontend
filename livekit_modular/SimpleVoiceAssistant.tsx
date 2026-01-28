@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveKitAssistant } from './useLiveKitAssistant';
 import { LiveKitAssistantProvider } from './LiveKitAssistantProvider';
 
-const LIVEKIT_URL = import.meta.env?.VITE_LIVEKIT_URL || '';
+const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || '';
 
 export const SimpleVoiceAssistant: React.FC = () => {
     const {

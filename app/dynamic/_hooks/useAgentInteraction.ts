@@ -22,6 +22,18 @@ export interface FlashcardStyle {
         alt: string;
         aspectRatio?: string;
     };
+    // [NEW] Dynamic UI Extensions
+    visual_intent?: 'neutral' | 'urgent' | 'success' | 'warning' | 'processing' | 'cyberpunk';
+    animation_style?: 'slide' | 'pop' | 'fade' | 'flip' | 'scale';
+    smartIcon?: {
+        type: 'animated' | 'static';
+        ref: string; // e.g. "shield-check" (Lucide) or "lottie-shield" (slug)
+        fallback?: string;
+    };
+    dynamicMedia?: {
+        query?: string;
+        source?: 'unsplash' | 'pexels';
+    };
 }
 
 export interface ChatMessage {
@@ -92,7 +104,9 @@ export function useAgentInteraction() {
                 theme: 'light',
                 capabilities: {
                     canRenderCards: true,
-                    maxVisibleCards: isMobile ? 1 : 4
+                    maxVisibleCards: isMobile ? 1 : 4,
+                    supportsRichUI: true, // Animations, Smart Icons
+                    supportsDynamicMedia: true
                 }
             },
             active_elements: visibleCards
@@ -214,7 +228,12 @@ export function useAgentInteraction() {
                                 layout: data.layout,
                                 image: data.image,
                                 stream_id: streamId,
-                                card_index: data.card_index
+                                card_index: data.card_index,
+                                // [NEW] Map new fields
+                                visual_intent: data.visual_intent,
+                                animation_style: data.animation_style,
+                                smartIcon: data.icon ? (typeof data.icon === 'string' ? { type: 'static', ref: data.icon } : data.icon) : undefined,
+                                dynamicMedia: data.media
                             },
                             sender: 'agent',
                             timestamp: Date.now(),
