@@ -101,7 +101,6 @@ export function useAgentInteraction() {
         // Extract recent flashcards to provide visual context to the agent
         const visibleCards = currentMessages
             .filter(m => m.type === 'flashcard')
-            .slice(-5) // Backend only needs the most recent/relevant ones
             .map(m => ({
                 id: m.id,
                 type: m.type,
@@ -118,7 +117,7 @@ export function useAgentInteraction() {
                 theme: 'light',
                 capabilities: {
                     canRenderCards: true,
-                    maxVisibleCards: isMobile ? 1 : 4,
+                    maxVisibleCards: isMobile ? 1 : Math.floor(window.innerWidth / 320), // Dynamic based on screen width
                     supportsRichUI: true, // Animations, Smart Icons
                     supportsDynamicMedia: true
                 }
