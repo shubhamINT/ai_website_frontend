@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
     useVoiceAssistant,
     useLocalParticipant,
@@ -22,6 +22,18 @@ export interface FlashcardStyle {
         alt: string;
         aspectRatio?: string;
     };
+    // [NEW] Dynamic UI Extensions
+    visual_intent?: 'neutral' | 'urgent' | 'success' | 'warning' | 'processing' | 'cyberpunk';
+    animation_style?: 'slide' | 'pop' | 'fade' | 'flip' | 'scale';
+    smartIcon?: {
+        type: 'animated' | 'static';
+        ref: string; // e.g. "shield-check" (Lucide) or "lottie-shield" (slug)
+        fallback?: string;
+    };
+    dynamicMedia?: {
+        query?: string;
+        source?: 'unsplash' | 'pexels';
+    };
 }
 
 export interface ChatMessage {
@@ -32,6 +44,8 @@ export interface ChatMessage {
     cardData?: {
         title: string;
         value: string;
+        stream_id?: string;
+        card_index?: number;
     } & FlashcardStyle;
     isInterim?: boolean;
     timestamp: number;
@@ -42,9 +56,21 @@ export function useAgentInteraction() {
     const { localParticipant, microphoneTrack } = useLocalParticipant();
     const room = useRoomContext();
     const [mode, setInteractionMode] = useState<InteractionMode>('voice');
+    const syncPerformed = useRef(false);
+    const messagesRef = useRef<Map<string, ChatMessage>>(new Map());
+    const syncRef = useRef<() => void>(() => { });
 
     // Message State
     const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
+
+    // Update messagesRef whenever state changes (keeping it in sync for listeners)
+    const updateMessages = useCallback((updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => {
+        setMessagesMap(prev => {
+            const next = updater(prev);
+            messagesRef.current = next;
+            return next;
+        });
+    }, []);
 
     // Derived array
     const sortedMessages = useMemo(() => {
@@ -68,12 +94,13 @@ export function useAgentInteraction() {
 
         const isMobile = window.innerWidth < 768;
 
-        // Extract recent flashcards to provide visual context to the agent
-        const visibleCards = sortedMessages
-            .filter(m => m.type === 'flashcard')
+        // Use messagesRef for the absolute latest data (bypasses async state lag)
+        const currentMessages = Array.from(messagesRef.current.values())
+            .sort((a, b) => a.timestamp - b.timestamp);
 
-            
-            .slice(-5) // Backend only needs the most recent/relevant ones
+        // Extract recent flashcards to provide visual context to the agent
+        const visibleCards = currentMessages
+            .filter(m => m.type === 'flashcard')
             .map(m => ({
                 id: m.id,
                 type: m.type,
@@ -90,7 +117,9 @@ export function useAgentInteraction() {
                 theme: 'light',
                 capabilities: {
                     canRenderCards: true,
-                    maxVisibleCards: isMobile ? 1 : 4
+                    maxVisibleCards: isMobile ? 1 : Math.floor(window.innerWidth / 320), // Dynamic based on screen width
+                    supportsRichUI: true, // Animations, Smart Icons
+                    supportsDynamicMedia: true
                 }
             },
             active_elements: visibleCards
@@ -102,14 +131,20 @@ export function useAgentInteraction() {
             reliable: true,
             topic: 'ui.context'
         });
-    }, [localParticipant, room, sortedMessages]);
+    }, [localParticipant, room]); // Removed sortedMessages dependency
+
+    // Keep syncRef updated for event listeners
+    useEffect(() => {
+        syncRef.current = syncUIContext;
+    }, [syncUIContext]);
 
     useEffect(() => {
         if (room?.state === 'connected') {
-            // Initial sync when agent is present
-            if (agentTrack) {
-                console.log('--- AGENT JOINED, SYNCING UI CONTEXT ---');
+            // Initial sync when agent is present - Perform only once
+            if (agentTrack && !syncPerformed.current) {
+                console.log('--- AGENT JOINED, PERFORMING INITIAL SYNC ---');
                 syncUIContext();
+                syncPerformed.current = true;
             }
 
             // Sync on resize (debounced)
@@ -123,16 +158,12 @@ export function useAgentInteraction() {
                 window.removeEventListener('resize', handleResize);
                 clearTimeout(timeout);
             };
+        } else {
+            // Reset if room disconnects or isn't connected yet
+            syncPerformed.current = false;
         }
-    }, [room?.state, !!agentTrack, syncUIContext]);
+    }, [room?.state, !!agentTrack]); // Removed syncUIContext to prevent loops
 
-    // Sync when flashcards are added/updated
-    useEffect(() => {
-        const lastCard = sortedMessages.filter(m => m.type === 'flashcard').pop();
-        if (lastCard && room?.state === 'connected') {
-            syncUIContext();
-        }
-    }, [sortedMessages.length, room?.state, syncUIContext]);
 
     useEffect(() => {
         if (!room) return;
@@ -141,13 +172,13 @@ export function useAgentInteraction() {
             if (!participant) return;
             const senderIsAgent = participant.identity !== localParticipant?.identity;
 
-            setMessagesMap((prev) => {
+            updateMessages((prev) => {
                 const next = new Map(prev);
                 for (const segment of segments) {
                     next.set(segment.id, {
                         id: segment.id,
                         type: 'text',
-                        text: segment.text.replace(/\[.*?\]/g, '').trim(),
+                        text: segment.text.replace(/\[.*?\]|<.*?>/g, '').trim(),
                         sender: senderIsAgent ? "agent" : "user",
                         isInterim: !segment.final,
                         timestamp: segment.firstReceivedTime,
@@ -165,8 +196,47 @@ export function useAgentInteraction() {
                 // Check either topic or data type for flashcards
                 if (topic === 'ui.flashcard' || data.type === 'flashcard') {
                     const id = `card-${Date.now()}-${Math.random()}`;
-                    setMessagesMap((prev) => {
+                    const streamId = data.stream_id || null;
+
+                    console.log('--- PROCESSING FLASHCARD ---', {
+                        streamId,
+                        card_index: data.card_index,
+                        title: data.title
+                    });
+
+                    // [NEW] Handle End of Stream
+                    if (data.type === 'end_of_stream') {
+                        console.log('--- STREAM COMPLETED, SYNCING UI CONTEXT ---', streamId);
+                        syncRef.current?.(); // Use Ref to bypass stale closure
+                        return;
+                    }
+
+                    updateMessages((prev) => {
                         const next = new Map(prev);
+
+                        // Find the current active stream_id from existing flashcards
+                        const existingCards = Array.from(next.values()).filter(m => m.type === 'flashcard');
+                        const currentStreamId = existingCards.length > 0
+                            ? existingCards[existingCards.length - 1].cardData?.stream_id
+                            : null;
+
+                        console.log('--- STREAM COMPARISON ---', {
+                            newStreamId: streamId,
+                            currentStreamId: currentStreamId,
+                            existingCardsCount: existingCards.length,
+                            willClear: streamId && streamId !== currentStreamId
+                        });
+
+                        // If stream ID is different, clear previous cards
+                        if (streamId && currentStreamId && streamId !== currentStreamId) {
+                            console.log('--- CLEARING OLD STREAM ---', { oldStream: currentStreamId, newStream: streamId });
+                            for (const [key, msg] of next.entries()) {
+                                if (msg.type === 'flashcard') {
+                                    next.delete(key);
+                                }
+                            }
+                        }
+
                         next.set(id, {
                             id,
                             type: 'flashcard',
@@ -178,19 +248,31 @@ export function useAgentInteraction() {
                                 theme: data.theme,
                                 size: data.size,
                                 layout: data.layout,
-                                image: data.image
+                                image: data.image,
+                                stream_id: streamId,
+                                card_index: data.card_index,
+                                // [NEW] Map new fields
+                                visual_intent: data.visual_intent,
+                                animation_style: data.animation_style,
+                                smartIcon: data.icon ? (typeof data.icon === 'string' ? { type: 'static', ref: data.icon } : data.icon) : undefined,
+                                dynamicMedia: data.media
                             },
                             sender: 'agent',
                             timestamp: Date.now(),
                             isInterim: false
                         });
+
+                        console.log('--- CARDS AFTER ADD ---', {
+                            totalCards: Array.from(next.values()).filter(m => m.type === 'flashcard').length
+                        });
+
                         return next;
                     });
                 }
                 // Check for agent text responses if transmitted via data channel
                 else if (topic === 'ui.text' || data.type === 'agent_chat') {
                     const id = `agent-${Date.now()}`;
-                    setMessagesMap((prev) => {
+                    updateMessages((prev) => {
                         const next = new Map(prev);
                         next.set(id, {
                             id,
@@ -265,7 +347,7 @@ export function useAgentInteraction() {
 
             // Optimistically add to UI
             const id = `local-${Date.now()}`;
-            setMessagesMap((prev) => {
+            updateMessages((prev) => {
                 const next = new Map(prev);
                 next.set(id, {
                     id,

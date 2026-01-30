@@ -1,5 +1,7 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useAgentInteraction } from '../_hooks/useAgentInteraction';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAgentInteraction, ChatMessage } from '../_hooks/useAgentInteraction';
 import { ThreeJSVisualizer } from './ThreeJSVisualizer';
 import { Flashcard } from './Flashcard';
 import { RoomAudioRenderer } from '@livekit/components-react';
@@ -7,6 +9,95 @@ import { RoomAudioRenderer } from '@livekit/components-react';
 interface AgentInterfaceProps {
     onDisconnect: () => void;
 }
+
+const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: boolean }) => {
+    const [visibleText, setVisibleText] = useState<string | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout>(null);
+
+    useEffect(() => {
+        if (text) {
+            setVisibleText(text);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+            // If it's a final message (not interim), hide it after a delay
+            if (!isInterim) {
+                timeoutRef.current = setTimeout(() => {
+                    setVisibleText(null);
+                }, 4000); // 4 seconds delay
+            }
+        }
+    }, [text, isInterim]);
+
+    if (!visibleText) return null;
+
+    return (
+        <div className="pointer-events-none absolute bottom-32 left-0 right-0 z-20 flex justify-center px-4">
+            <div className={`max-w-2xl text-center transition-all duration-300 ${visibleText ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <span className={`inline-block rounded-2xl bg-black/40 px-6 py-3 text-lg font-medium text-white backdrop-blur-md shadow-lg
+                    ${isInterim ? 'animate-pulse' : ''}`}>
+                    {visibleText}
+                </span>
+            </div>
+        </div>
+    );
+};
+
+const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
+    if (cards.length === 0) return null;
+
+    // Filter out cards without cardData
+    const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
+        card && card.cardData !== undefined && card.cardData.title !== undefined
+    );
+    if (validCards.length === 0) return null;
+
+    return (
+        <div className="relative flex w-full max-w-7xl flex-col items-center">
+            {/* Grid layout for multiple cards */}
+            <motion.div
+                layout
+                className={`relative z-10 w-full px-4 md:px-6 grid gap-6 ${validCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
+                    validCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
+                        validCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                            'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                    }`}
+            >
+                <AnimatePresence mode="popLayout">
+                    {validCards.map((card) => (
+                        <motion.div
+                            layout
+                            key={card.id}
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        >
+                            <Flashcard {...card.cardData} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </motion.div>
+
+            {/* Optional card count indicator */}
+            {validCards.length > 1 && (
+                <div className="mt-6 flex items-center gap-2 rounded-full bg-white/40 px-4 py-2 backdrop-blur-xl ring-1 ring-black/5 shadow-lg">
+                    <div className="flex gap-1.5">
+                        {validCards.map((_, idx) => (
+                            <motion.div
+                                key={idx}
+                                layoutId={`dot-${idx}`}
+                                className="h-1.5 w-1.5 rounded-full bg-zinc-400"
+                            />
+                        ))}
+                    </div>
+                    <span className="text-xs font-medium text-zinc-600">
+                        {validCards.length} {validCards.length === 1 ? 'Card' : 'Cards'}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) => {
     const {
@@ -23,13 +114,16 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     const [inputText, setInputText] = useState('');
     const [isMuted, setIsMuted] = useState(false);
     const [isAgentMuted, setIsAgentMuted] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Initial scroll to bottom
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+    // Compute flashcards and latest agent message
+    const flashcards = useMemo(() => {
+        return messages.filter(m => m.type === 'flashcard');
+    }, [messages]);
+
+    const latestAgentMessage = useMemo(() => {
+        const agentMsgs = messages.filter(m => m.sender === 'agent' && m.type === 'text');
+        // We want the very last one, even if interim
+        return agentMsgs.length > 0 ? agentMsgs[agentMsgs.length - 1] : null;
     }, [messages]);
 
     // Handle Agent Muting
@@ -44,30 +138,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         sendText(inputText);
         setInputText('');
     };
-
-    const memoizedMessages = useMemo(() => {
-        return messages.map((msg) => (
-            <div
-                key={msg.id}
-                className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-                {msg.type === 'flashcard' && msg.cardData ? (
-                    <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg mb-2">
-                        <Flashcard {...msg.cardData} />
-                    </div>
-                ) : (
-                    <div
-                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ring-1 ring-inset backdrop-blur-md transition-all sm:max-w-[75%] sm:px-5 sm:py-3.5 ${msg.sender === 'user'
-                            ? 'bg-zinc-900 text-white ring-zinc-900 rounded-br-none'
-                            : 'bg-white/80 text-zinc-800 ring-white/50 rounded-bl-none shadow-[0_2px_10px_rgba(0,0,0,0.03)]'
-                            } ${(msg.isInterim) ? 'opacity-60 animate-pulse' : ''}`}
-                    >
-                        {msg.text}
-                    </div>
-                )}
-            </div>
-        ));
-    }, [messages]);
 
     const handleMicToggle = () => {
         if (mode === 'text') {
@@ -87,27 +157,31 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             {/* Audio Renderer */}
             <RoomAudioRenderer />
 
-            {/* Content Wrapper */}
-            <div className="relative z-10 flex h-full flex-col justify-between pointer-events-none">
+            {/* Central Content (Card Display) */}
+            <div className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-0 pb-32">
+                <CardDisplay cards={flashcards} />
 
-                {/* Messages Area (Top) */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300 pointer-events-auto [mask-image:linear-gradient(to_bottom,black_90%,transparent)]">
-                    {messages.length === 0 && (
-                        <div className="flex flex-1 items-center justify-center opacity-40">
-                            <p className="text-zinc-500 animate-pulse font-light tracking-wide text-sm uppercase">
-                                {agentState === 'speaking' ? 'Agent Speaking...' : 'Listening...'}
-                            </p>
+                {/* Empty State / Prompt if no card */}
+                {/* Empty State / Prompt if no card */}
+                {flashcards.length === 0 && (
+                    <div className="flex items-center justify-center pointer-events-none">
+                        <div className="relative h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] md:h-[500px] md:w-[500px]">
+                            <ThreeJSVisualizer agentTrack={activeTrack} userTrack={userTrack} />
                         </div>
-                    )}
-
-                    <div className="flex flex-col gap-6 justify-end min-h-full pb-4">
-                        {memoizedMessages}
-                        <div ref={messagesEndRef} />
                     </div>
-                </div>
+                )}
+            </div>
 
-                {/* Bottom Control Bar (Floating) */}
-                <div className="pointer-events-auto flex w-full justify-center p-4 pb-8 sm:p-8 sm:pb-10">
+            {/* Subtitles Overlay */}
+            <SubtitleOverlay
+                text={latestAgentMessage?.text || null}
+                isInterim={latestAgentMessage?.isInterim || false}
+            />
+
+            {/* Content Wrapper for Controls (Z-Index ensures it's on top) */}
+            <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
+                {/* Bottom Control Bar */}
+                <div className="pointer-events-auto flex w-full justify-center p-4">
                     <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/90 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-zinc-200 backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)]">
 
                         {/* AI Orb Visualizer */}
@@ -166,7 +240,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                         <div className="relative flex min-w-0 flex-1 items-center group/input px-1 transition-all duration-300 sm:px-2">
                             <input
                                 type="text"
-                                contr-ui="chat-input"
                                 value={inputText}
                                 onChange={(e) => {
                                     setInputText(e.target.value);
@@ -176,7 +249,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                                     if (mode !== 'text') setInteractionMode('text');
                                 }}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder={"Text..."}
+                                placeholder={"Type something..."}
                                 className={`w-full min-w-0 bg-transparent px-1 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all sm:w-[180px] sm:px-2 sm:py-2 md:w-[240px] ${mode === 'voice' ? 'cursor-text' : ''
                                     }`}
                             />
