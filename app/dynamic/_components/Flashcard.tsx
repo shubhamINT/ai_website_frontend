@@ -81,9 +81,9 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
     };
 
     const sizeClasses = {
-        small: 'p-4 w-full max-w-[280px]',
-        medium: 'p-6 w-full max-w-[420px]',
-        large: 'p-8 w-full max-w-4xl'
+        small: 'p-3 w-full max-w-[260px] md:p-4 md:max-w-[280px]',
+        medium: 'p-4 gap-3 w-full max-w-[340px] md:p-6 md:gap-5 md:max-w-[420px]',
+        large: 'p-6 w-full max-w-4xl md:p-8'
     };
 
     // 3. Animation Variants
@@ -120,13 +120,13 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
             if (kvMatch) {
                 const [, label, val] = kvMatch;
                 return (
-                    <div key={i} className="flex flex-col gap-1 mb-3 last:mb-0">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${normalizedTheme === 'neon' ? 'text-zinc-500' : 'text-zinc-400'}`}>{label}</span>
-                        <span className={`font-medium ${normalizedTheme === 'neon' ? 'text-zinc-100' : 'text-zinc-800'}`}>{val}</span>
+                    <div key={i} className="flex flex-col gap-0.5 mb-2 last:mb-0 md:gap-1 md:mb-3">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest md:text-[10px] ${normalizedTheme === 'neon' ? 'text-zinc-500' : 'text-zinc-400'}`}>{label}</span>
+                        <span className={`font-medium text-xs md:text-base ${normalizedTheme === 'neon' ? 'text-zinc-100' : 'text-zinc-800'}`}>{val}</span>
                     </div>
                 );
             }
-            return <p key={i} className="mb-2 last:mb-0 leading-relaxed opacity-90">{line.replace(/\*\*/g, '')}</p>;
+            return <p key={i} className="mb-1.5 last:mb-0 text-xs leading-relaxed opacity-90 md:mb-2 md:text-sm">{line.replace(/\*\*/g, '')}</p>;
         });
     };
 
@@ -154,20 +154,20 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
                     <div className="flex items-center gap-4">
                         {/* Smart Icon Wrapper */}
                         <div className={`
-                            flex h-12 w-12 items-center justify-center rounded-2xl 
+                            flex h-10 w-10 items-center justify-center rounded-xl md:h-12 md:w-12 md:rounded-2xl
                             ${normalizedTheme === 'neon' ? `bg-gradient-to-br ${colors.gradient} text-white` : `bg-white ${colors.text} ring-1 ring-zinc-100 shadow-sm`}
                             transition-all duration-300 group-hover:scale-110
                         `}>
                             <SmartIcon
                                 iconRef={smartIcon?.ref || icon || 'info'}
                                 type={smartIcon?.type || 'static'}
-                                className="w-6 h-6"
+                                className="w-5 h-5 md:w-6 md:h-6"
                             />
                         </div>
 
                         <div>
                             {/* <div className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-0.5">Insight</div> */}
-                            <h3 className={`text-lg font-bold leading-tight ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
+                            <h3 className={`text-base font-bold leading-tight md:text-lg ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
                                 {title}
                             </h3>
                         </div>

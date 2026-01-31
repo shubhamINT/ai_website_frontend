@@ -14,26 +14,35 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
     const [visibleText, setVisibleText] = useState<string | null>(null);
     const timeoutRef = useRef<NodeJS.Timeout>(null);
 
+    const processedText = useMemo(() => {
+        if (!text) return null;
+        // If it's too long, only show the last sentence or last ~100 chars
+        if (text.length > 120) {
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            return sentences[sentences.length - 1].trim();
+        }
+        return text;
+    }, [text]);
+
     useEffect(() => {
-        if (text) {
-            setVisibleText(text);
+        if (processedText) {
+            setVisibleText(processedText);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-            // If it's a final message (not interim), hide it after a delay
             if (!isInterim) {
                 timeoutRef.current = setTimeout(() => {
                     setVisibleText(null);
-                }, 4000); // 4 seconds delay
+                }, 4000);
             }
         }
-    }, [text, isInterim]);
+    }, [processedText, isInterim]);
 
     if (!visibleText) return null;
 
     return (
-        <div className="pointer-events-none absolute bottom-32 left-0 right-0 z-20 flex justify-center px-4">
+        <div className="pointer-events-none absolute bottom-28 left-0 right-0 z-20 flex justify-center px-4 md:bottom-32">
             <div className={`max-w-2xl text-center transition-all duration-300 ${visibleText ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                <span className={`inline-block rounded-2xl bg-black/40 px-6 py-3 text-lg font-medium text-white backdrop-blur-md shadow-lg
+                <span className={`inline-block rounded-xl bg-black/60 px-4 py-2 text-sm font-medium text-white backdrop-blur-md shadow-lg md:rounded-2xl md:px-6 md:py-3 md:text-lg
                     ${isInterim ? 'animate-pulse' : ''}`}>
                     {visibleText}
                 </span>
@@ -51,19 +60,27 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     );
     if (validCards.length === 0) return null;
 
+    // On mobile, show only the latest card to ensure it fits on screen without scrolling
+    const displayedCards = useMemo(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            return validCards.slice(-1);
+        }
+        return validCards;
+    }, [validCards]);
+
     return (
         <div className="relative flex w-full max-w-7xl flex-col items-center">
             {/* Grid layout for multiple cards */}
             <motion.div
                 layout
-                className={`relative z-10 w-full px-4 md:px-6 grid gap-6 justify-items-center ${validCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
-                        validCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
-                            validCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-                                'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
+                className={`relative z-10 w-full px-4 md:px-6 grid gap-6 justify-items-center ${displayedCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
+                    displayedCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
+                    displayedCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                    'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
                     }`}
             >
                 <AnimatePresence mode="popLayout">
-                    {validCards.map((card) => (
+                    {displayedCards.map((card) => (
                         <motion.div
                             layout
                             key={card.id}
@@ -158,7 +175,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             <RoomAudioRenderer />
 
             {/* Central Content (Card Display) */}
-            <div className="absolute inset-0 flex items-center justify-center p-6 md:p-12 z-0 pb-32">
+            <div className="absolute inset-0 flex flex-col items-center justify-start overflow-hidden p-4 pt-16 z-0 pb-36 md:justify-center md:p-12 md:pb-32">
                 <CardDisplay cards={flashcards} />
 
                 {/* Empty State / Prompt if no card */}
