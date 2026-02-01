@@ -75,8 +75,8 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                 layout
                 className={`relative z-10 w-full px-4 md:px-6 grid gap-6 justify-items-center ${displayedCards.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' :
                     displayedCards.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
-                    displayedCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-                    'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
+                        displayedCards.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                            'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'
                     }`}
             >
                 <AnimatePresence mode="popLayout">
@@ -175,7 +175,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             <RoomAudioRenderer />
 
             {/* Central Content (Card Display) */}
-            <div className="absolute inset-0 flex flex-col items-center justify-start overflow-hidden p-4 pt-16 z-0 pb-36 md:justify-center md:p-12 md:pb-32">
+            <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
                 <CardDisplay cards={flashcards} />
 
                 {/* Empty State / Prompt if no card */}
