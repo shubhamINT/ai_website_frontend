@@ -25,11 +25,13 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     const [isLoading, setIsLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
 
+    const safeUrls = urls || [];
+
     // Reset index if URLs change
     useEffect(() => {
         setCurrentIndex(0);
         setIsLoading(true);
-    }, [urls.length, (urls[0] || '')]);
+    }, [safeUrls.length, (safeUrls[0] || '')]);
 
     // Helpers to detect media type
     const getMediaType = (url: string): MediaType => {
@@ -119,8 +121,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     const containerClasses = `relative w-full overflow-hidden rounded-[1.5rem] group ring-1 ring-black/5 shadow-inner bg-zinc-100/50 ${ratioMap[aspectRatio]}`;
 
     // Priority 1: Direct URLs
-    if (urls && urls.length > 0) {
-        const currentUrl = urls[currentIndex];
+    if (safeUrls && safeUrls.length > 0) {
+        const currentUrl = safeUrls[currentIndex];
         const mediaType = getMediaType(currentUrl);
 
         return (
@@ -161,21 +163,21 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                                 <span className="text-[10px] font-bold text-white uppercase tracking-wider">Video</span>
                             </div>
                         )}
-                        {urls.length > 1 && (
+                        {safeUrls.length > 1 && (
                             <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-lg border border-black/5">
-                                <span className="text-[10px] font-bold text-zinc-900">{currentIndex + 1} / {urls.length}</span>
+                                <span className="text-[10px] font-bold text-zinc-900">{currentIndex + 1} / {safeUrls.length}</span>
                             </div>
                         )}
                     </div>
 
                     {/* Controls for Multiple URLs */}
-                    {urls.length > 1 && (
+                    {safeUrls.length > 1 && (
                         <>
                             <div className="absolute inset-y-0 left-0 right-0 flex justify-between items-center px-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
                                 <button
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        setCurrentIndex((prev) => (prev - 1 + urls.length) % urls.length);
+                                        setCurrentIndex((prev) => (prev - 1 + safeUrls.length) % safeUrls.length);
                                     }}
                                     className="p-2.5 rounded-full bg-white/95 text-zinc-900 shadow-xl backdrop-blur-xl hover:bg-white hover:scale-110 active:scale-95 z-30 ring-1 ring-black/5"
                                 >
@@ -186,7 +188,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                                 <button
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        setCurrentIndex((prev) => (prev + 1) % urls.length);
+                                        setCurrentIndex((prev) => (prev + 1) % safeUrls.length);
                                     }}
                                     className="p-2.5 rounded-full bg-white/95 text-zinc-900 shadow-xl backdrop-blur-xl hover:bg-white hover:scale-110 active:scale-95 z-30 ring-1 ring-black/5"
                                 >
@@ -198,7 +200,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
 
                             {/* Dot Indicators */}
                             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-black/20 backdrop-blur-sm p-1.5 rounded-full">
-                                {urls.map((_, i) => (
+                                {safeUrls.map((_, i) => (
                                     <button
                                         key={i}
                                         onClick={() => setCurrentIndex(i)}
