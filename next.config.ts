@@ -1,4 +1,4 @@
-  import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
@@ -13,13 +13,15 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'loremflickr.com',
+        hostname: 'source.unsplash.com',
       },
       {
         protocol: 'https',
         hostname: 'placehold.co',
       },
     ],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

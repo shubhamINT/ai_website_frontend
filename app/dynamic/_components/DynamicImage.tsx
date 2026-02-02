@@ -28,9 +28,9 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
     useEffect(() => {
         const fetchPixabayImage = async () => {
             if (source !== 'pixabay') {
-                // Fallback to Lorem Flickr for other sources
+                // Fallback to Unsplash Source for other sources
                 const encodedQuery = encodeURIComponent(query);
-                setImageUrl(`https://loremflickr.com/${width}/${height}/${encodedQuery},technology/all`);
+                setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
                 setIsLoading(false);
                 return;
             }
@@ -40,7 +40,7 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                 const response = await searchPixabayImages(query, {
                     imageType: 'photo',
                     orientation: 'all',
-                    perPage: 1,
+                    perPage: 3, // Minimum allowed by Pixabay API
                     page: Math.floor(Math.random() * 10) + 1, // Random page for variety
                     safeSearch: true,
                 });
@@ -49,15 +49,15 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                     // Use webformatURL for good quality images
                     setImageUrl(response.hits[0].webformatURL);
                 } else {
-                    // No results, fallback to Lorem Flickr
+                    // No results, fallback to Unsplash Source
                     const encodedQuery = encodeURIComponent(query);
-                    setImageUrl(`https://loremflickr.com/${width}/${height}/${encodedQuery},technology/all`);
+                    setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
                 }
             } catch (err) {
                 console.error('Pixabay API error:', err);
-                // Fallback to Lorem Flickr on error
+                // Fallback to Unsplash Source on error
                 const encodedQuery = encodeURIComponent(query);
-                setImageUrl(`https://loremflickr.com/${width}/${height}/${encodedQuery},technology/all`);
+                setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
             } finally {
                 setIsLoading(false);
             }
