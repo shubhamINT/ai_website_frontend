@@ -11,24 +11,33 @@ interface BarVisualizerProps {
     barCount?: number;
 }
 
-export const BarVisualizer: React.FC<BarVisualizerProps> = ({ 
-    agentTrack, 
-    userTrack, 
+export const BarVisualizer: React.FC<BarVisualizerProps> = ({
+    agentTrack,
+    userTrack,
     mode = 'full',
-    barCount: customBarCount 
+    barCount: customBarCount
 }) => {
     const agentVol = useTrackVolume(agentTrack as any);
     const userVol = useTrackVolume(userTrack as any);
 
-    // Dynamic bar count based on mode
-    const barCount = customBarCount || (mode === 'mini' ? 12 : 24);
+    // Debug: log volume values
+    useEffect(() => {
+        if (agentVol > 0 || userVol > 0) {
+            console.log('[BarVisualizer] Volume:', { agentVol, userVol, hasAgentTrack: !!agentTrack?.publication?.track, hasUserTrack: !!userTrack?.publication?.track });
+        }
+    }, [agentVol, userVol, agentTrack, userTrack]);
+
+    // Dynamic bar count based on mode - optimized for the 48px/64px container
+    const barCount = customBarCount || (mode === 'mini' ? 10 : 24);
 
     // Audio State Logic
     const aVol = Math.max(0, agentVol || 0);
     const uVol = Math.max(0, userVol || 0);
-    const isAgentSpeaking = aVol > 0.02 && aVol >= uVol;
+
+    // Lower threshold for "speaking" state to catch softer audio
+    const isAgentSpeaking = aVol > 0.005;
     const activeVol = Math.max(aVol, uVol);
-    const isSpeaking = activeVol > 0.01;
+    const isSpeaking = activeVol > 0.005;
 
     // Premium Color Tokens
     const colors = {
@@ -39,11 +48,11 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
 
     const activeTheme = !isSpeaking ? colors.idle : isAgentSpeaking ? colors.agent : colors.user;
 
-    // Create a smoothed volume value to prevent "flicker"
+    // Create a smoothed volume value with enhanced physics for better vibration
     const smoothVol = useSpring(activeVol, {
-        stiffness: 200,
-        damping: 30,
-        mass: 0.5
+        stiffness: 400, // Stiffer for snappier response
+        damping: 20,    // Less damping for more "life"
+        mass: 0.2       // Lighter mass for quick reaction
     });
 
     // Generate bar configurations with organic variation
@@ -55,7 +64,7 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
             const multiplier = Math.pow(Math.cos(centerOffset * Math.PI / 2), 1.5);
             // Random jitter factor for "organic" feel
             const jitter = 0.8 + Math.random() * 0.4;
-            
+
             return {
                 multiplier: multiplier * jitter,
                 delay: i * 0.01,
@@ -64,10 +73,10 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
     }, [barCount]);
 
     return (
-        <div 
+        <div
             className={`
-                relative flex items-center justify-center overflow-hidden
-                ${mode === 'mini' ? 'h-8 w-32 gap-0.5' : 'h-24 w-full gap-1'}
+                relative flex items-center justify-center w-full h-full
+                ${mode === 'mini' ? 'gap-0.5' : 'gap-1.5'}
             `}
             style={{
                 // Fade out edges for a high-end "optical" look
@@ -76,7 +85,7 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
             }}
         >
             {bars.map((bar, i) => (
-                <VisualizerBar 
+                <VisualizerBar
                     key={i}
                     volume={smoothVol}
                     theme={activeTheme}
@@ -85,22 +94,6 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
                     isSpeaking={isSpeaking}
                 />
             ))}
-
-            {/* Subtle background glow/halo */}
-            <AnimatePresence>
-                {isSpeaking && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-0 pointer-events-none"
-                        style={{
-                            background: `radial-gradient(circle, ${activeTheme.glow} 0%, transparent 70%)`,
-                            filter: 'blur(20px)'
-                        }}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 };
@@ -109,11 +102,12 @@ const VisualizerBar = ({ volume, theme, multiplier, mode, isSpeaking }: any) => 
     // Non-linear height scaling for better visual impact
     const height = useTransform(
         volume,
-        [0, 0.1, 0.5, 1],
+        [0, 0.05, 0.2, 0.6, 1], // More granular mapping for low volume sensitivity
         [
             mode === 'mini' ? 4 : 8, // Base height
-            mode === 'mini' ? 8 : 16, 
-            mode === 'mini' ? 24 : 60, 
+            mode === 'mini' ? 10 : 20,
+            mode === 'mini' ? 20 : 45,
+            mode === 'mini' ? 28 : 70,
             mode === 'mini' ? 32 : 90  // Max height
         ]
     );
@@ -127,15 +121,17 @@ const VisualizerBar = ({ volume, theme, multiplier, mode, isSpeaking }: any) => 
                 height: scaledHeight,
                 backgroundColor: theme.primary,
                 boxShadow: isSpeaking ? `0 0 12px ${theme.glow}` : 'none',
+                // Responsive width: slightly thicker in center
                 width: mode === 'mini' ? '3px' : '4px',
+                minWidth: mode === 'mini' ? '3px' : '4px',
             }}
             animate={{
                 backgroundColor: theme.primary,
             }}
             transition={{
-                backgroundColor: { duration: 0.4, ease: "easeInOut" }
+                backgroundColor: { duration: 0.15, ease: "linear" } // Faster color transitions
             }}
-            className="rounded-full relative z-10"
+            className="rounded-full relative z-10 flex-shrink-0"
         >
             {/* Glossy overlay */}
             <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />

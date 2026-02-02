@@ -308,23 +308,22 @@ export function useAgentInteraction() {
         state === 'listening' ? 'listening' : 'idle';
     // 'thinking' is not a default state in standard hook, but we can infer if needed
 
+    // Pass the agentTrack directly - it's already a proper TrackReferenceOrPlaceholder
+    // from useVoiceAssistant() with the track object included
     const activeTrack = useMemo(() => {
-        if (agentTrack?.publication) {
-            return {
-                participant: agentTrack.participant,
-                source: Track.Source.Microphone, // Agents usually act as microphone sources
-                publication: agentTrack.publication
-            } as TrackReferenceOrPlaceholder;
+        if (agentTrack?.publication?.track) {
+            return agentTrack;
         }
         return undefined;
     }, [agentTrack]);
 
+    // For userTrack, we need to construct a proper TrackReference with the actual track
     const userTrack = useMemo(() => {
-        if (localParticipant && microphoneTrack) {
+        if (localParticipant && microphoneTrack?.track) {
             return {
                 participant: localParticipant,
                 source: Track.Source.Microphone,
-                publication: microphoneTrack
+                publication: microphoneTrack,
             } as TrackReferenceOrPlaceholder;
         }
         return undefined;
