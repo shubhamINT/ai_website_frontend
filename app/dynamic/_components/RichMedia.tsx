@@ -31,7 +31,13 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     useEffect(() => {
         setCurrentIndex(0);
         setIsLoading(true);
-    }, [safeUrls.length, (safeUrls[0] || '')]);
+
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 2500); // Failsafe: max load time 2.5s
+
+        return () => clearTimeout(timer);
+    }, [safeUrls.length, safeUrls[0] || '']);
 
     // Helpers to detect media type
     const getMediaType = (url: string): MediaType => {

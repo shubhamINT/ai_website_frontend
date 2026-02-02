@@ -28,9 +28,8 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
     useEffect(() => {
         const fetchPixabayImage = async () => {
             if (source !== 'pixabay') {
-                // Fallback to Unsplash Source for other sources
-                const encodedQuery = encodeURIComponent(query);
-                setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
+                // Fallback to a reliable high-quality tech background
+                setImageUrl(`https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=${width}&auto=format&fit=crop`);
                 setIsLoading(false);
                 return;
             }
@@ -40,25 +39,22 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                 const response = await searchPixabayImages(query, {
                     imageType: 'photo',
                     orientation: 'all',
-                    perPage: 3, // Minimum allowed by Pixabay API
-                    page: Math.floor(Math.random() * 10) + 1, // Random page for variety
+                    perPage: 3,
+                    page: Math.floor(Math.random() * 10) + 1,
                     safeSearch: true,
                 });
 
                 if (response.hits && response.hits.length > 0) {
-                    // Use webformatURL for good quality images
                     setImageUrl(response.hits[0].webformatURL);
                 } else {
-                    // No results, fallback to Unsplash Source
-                    const encodedQuery = encodeURIComponent(query);
-                    setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
+                    // No results, fallback to reliable Unsplash direct link
+                    setImageUrl(`https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=${width}&auto=format&fit=crop`);
                 }
             } catch (err) {
                 console.error('Pixabay API error:', err);
-                // Fallback to Unsplash Source on error
-                const encodedQuery = encodeURIComponent(query);
-                setImageUrl(`https://source.unsplash.com/${width}x${height}/?${encodedQuery}`);
+                setImageUrl(`https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=${width}&auto=format&fit=crop`);
             } finally {
+
                 setIsLoading(false);
             }
         };
