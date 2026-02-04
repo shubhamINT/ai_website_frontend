@@ -15,8 +15,8 @@ export function useLiveKitConnection() {
         setError(null);
         try {
             // Generate a random user ID for this session
-            const userId = `user_${Math.floor(Math.random() * 10000)}`;
-            const url = `${TOKEN_ENDPOINT}?name=${userId}&agent=${agentName}`;
+            const userId = `user_${Math.floor(Math.random() * 1000000)}`;
+            const url = `${TOKEN_ENDPOINT}?name=Guest&user_id=${userId}&agent=${agentName}&email=guest@example.com`;
 
             const response = await fetch(url, { mode: 'cors' });
 

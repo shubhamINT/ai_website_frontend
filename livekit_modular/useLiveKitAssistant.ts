@@ -48,8 +48,8 @@ export function useLiveKitAssistant(): LiveKitAssistantHook {
     const connect = useCallback(async (agentName: string = 'bandhan_banking') => {
         setIsConnecting(true);
         try {
-            const userId = `user_${Math.floor(Math.random() * 10000)}`;
-            const url = `${TOKEN_ENDPOINT}?name=${userId}&agent=${agentName}`;
+            const userId = `user_${Math.floor(Math.random() * 1000000)}`;
+            const url = `${TOKEN_ENDPOINT}?name=Guest&user_id=${userId}&agent=${agentName}`;
 
             const response = await fetch(url, { mode: 'cors' });
             if (!response.ok) {
