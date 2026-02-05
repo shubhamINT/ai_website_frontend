@@ -154,16 +154,19 @@ export function useAgentMessages() {
                     });
                 }
                 else if (topic === 'user.details'){
-                    console.log('--- USER DETAILS ---', data);
-
-                    // Save into local storage
+                    console.log('--- USER DETAILS (INCOMING) ---', data);
+                    // 1. Get the existing details from storage first
+                    const existingStr = localStorage.getItem('user_info');
+                    const existing = existingStr ? JSON.parse(existingStr) : {};
+                    // 2. Merge existing with new (new fields will overwrite old ones, but old ones stay if not in new)
                     const userInfo = {
-                        user_name: data.user_name,  // Name of the user
-                        user_email: data.user_email, // Email of the user
-                        user_id: data.user_id,       // ID of the user
-                        
+                        ...existing,
+                        ...(data.user_name && { user_name: data.user_name }),
+                        ...(data.user_email && { user_email: data.user_email }),
+                        ...(data.user_id && { user_id: data.user_id }),
                     }
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
+                    console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
             } catch (e) { /* ignore non-json or noise */ }
         };
