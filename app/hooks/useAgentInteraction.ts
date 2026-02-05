@@ -110,6 +110,17 @@ export function useAgentInteraction() {
                 summary: m.cardData?.value?.substring(0, 100) + (m.cardData?.value && m.cardData.value.length > 100 ? '...' : '')
             }));
 
+        // [NEW] Get User Info from Local Storage
+        let userInfo = { name: "", id: "" };
+        try {
+            const storedUser = localStorage.getItem("user_info");
+            if (storedUser) {
+                userInfo = JSON.parse(storedUser);
+            }
+        } catch (e) {
+            console.warn("Failed to parse user_info for sync", e);
+        }
+
         const context = {
             type: 'ui.context_sync',
             timestamp: Date.now(),
@@ -132,6 +143,19 @@ export function useAgentInteraction() {
         localParticipant.publishData(encoder.encode(JSON.stringify(context)), {
             reliable: true,
             topic: 'ui.context'
+        });
+
+        // [NEW] Separate User Context Sync
+        const userContext = {
+            type: 'user.context_sync',
+            timestamp: Date.now(),
+            user_info: userInfo
+        };
+
+        console.log('--- SYNCING USER CONTEXT ---', userContext);
+        localParticipant.publishData(encoder.encode(JSON.stringify(userContext)), {
+            reliable: true,
+            topic: 'user.context'
         });
     }, [localParticipant, room]); // Removed sortedMessages dependency
 
