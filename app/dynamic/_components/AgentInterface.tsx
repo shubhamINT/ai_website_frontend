@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteraction';
 import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
+import { EmailForm } from './EmailForm';
 import { RoomAudioRenderer } from '@livekit/components-react';
 
 interface AgentInterfaceProps {
@@ -141,6 +142,12 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         return agentMsgs.length > 0 ? agentMsgs[agentMsgs.length - 1] : null;
     }, [messages]);
 
+    // [NEW] Check for email form message
+    const emailFormMessage = useMemo(() => {
+        const forms = messages.filter(m => m.type === 'email_form');
+        return forms.length > 0 ? forms[forms.length - 1] : null;
+    }, [messages]);
+
     // Handle Agent Muting
     useEffect(() => {
         if (activeTrack?.publication?.track && 'setVolume' in activeTrack.publication.track) {
@@ -172,9 +179,15 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             {/* Audio Renderer */}
             <RoomAudioRenderer />
 
-            {/* Central Content (Card Display) */}
+            {/* Central Content (Card Display or Email Form) */}
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
-                <CardDisplay cards={flashcards} />
+                {emailFormMessage && emailFormMessage.emailFormData ? (
+                    <div className="flex w-full justify-center">
+                        <EmailForm data={emailFormMessage.emailFormData} />
+                    </div>
+                ) : (
+                    <CardDisplay cards={flashcards} />
+                )}
 
                 {/* Empty State / Prompt if no card */}
                 {/* Empty State / Visualizer if no card */}

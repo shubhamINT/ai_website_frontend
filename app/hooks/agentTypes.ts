@@ -28,10 +28,17 @@ export interface FlashcardStyle {
     };
 }
 
+
+export interface EmailFormData {
+    user_name?: string;
+    user_email?: string;
+    email_body?: string;
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard';
+    type: 'text' | 'flashcard' | 'email_form';
     text?: string;
     cardData?: {
         title: string;
@@ -39,6 +46,7 @@ export interface ChatMessage {
         stream_id?: string;
         card_index?: number;
     } & FlashcardStyle;
+    emailFormData?: EmailFormData;
     isInterim?: boolean;
     timestamp: number;
 }

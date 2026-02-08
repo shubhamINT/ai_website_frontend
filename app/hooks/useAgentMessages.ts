@@ -6,10 +6,10 @@ import { ChatMessage } from './agentTypes';
 export function useAgentMessages() {
     const room = useRoomContext();
     const { localParticipant } = useLocalParticipant();
-    
+
     const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
     const messagesRef = useRef<Map<string, ChatMessage>>(new Map());
-    
+
     // Callback to trigger context sync when stream ends - will be set by useContextSync
     const onStreamCompleteRef = useRef<(() => void) | null>(null);
 
@@ -55,7 +55,7 @@ export function useAgentMessages() {
             try {
                 const data = JSON.parse(strData);
                 console.log('--- INCOMING DATA CHANNEL MESSAGE ---', { topic, data });
-                
+
                 // Check either topic or data type for flashcards
                 if (topic === 'ui.flashcard' || data.type === 'flashcard') {
                     const id = `card-${Date.now()}-${Math.random()}`;
@@ -153,7 +153,7 @@ export function useAgentMessages() {
                         return next;
                     });
                 }
-                else if (topic === 'user.details'){
+                else if (topic === 'user.details') {
                     console.log('--- USER DETAILS (INCOMING) ---', data);
                     // 1. Get the existing details from storage first
                     const existingStr = localStorage.getItem('user_info');
@@ -167,6 +167,26 @@ export function useAgentMessages() {
                     }
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
+                }
+                else if (topic == 'ui.email_form' || data.type === 'email_form') {
+                    console.log('--- EMAIL FORM (INCOMING) ---', data);
+                    const id = `email-form-${Date.now()}`;
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'email_form',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            emailFormData: {
+                                user_name: data.data?.user_name || data.user_name,
+                                user_email: data.data?.user_email || data.user_email,
+                                email_body: data.data?.email_body || data.email_body,
+                            }
+                        });
+                        return next;
+                    });
                 }
             } catch (e) { /* ignore non-json or noise */ }
         };
