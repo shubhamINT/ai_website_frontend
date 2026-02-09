@@ -189,6 +189,27 @@ export function useAgentMessages() {
                         return next;
                     });
                 }
+                else if (topic == 'ui.contact_form' || data.type === 'contact_form') {
+                    console.log('--- CONTACT FORM (INCOMING) ---', data);
+                    const id = `contact-form-${Date.now()}`;
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'contact_form',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            contactFormData: {
+                                user_name: data.data?.user_name || data.user_name,
+                                user_email: data.data?.user_email || data.user_email,
+                                user_phone: data.data?.user_phone || data.user_phone,
+                                contact_details: data.data?.contact_details || data.contact_details,
+                            }
+                        });
+                        return next;
+                    });
+                }
             } catch (e) { /* ignore non-json or noise */ }
         };
 

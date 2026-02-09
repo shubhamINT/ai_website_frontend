@@ -36,10 +36,17 @@ export interface EmailFormData {
     email_body?: string;
 }
 
+export interface ContactFormData {
+    user_name?: string;
+    user_email?: string;
+    user_phone?: string;
+    contact_details?: string;
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'email_form';
+    type: 'text' | 'flashcard' | 'email_form' | 'contact_form';
     text?: string;
     cardData?: {
         title: string;
@@ -48,6 +55,7 @@ export interface ChatMessage {
         card_index?: number;
     } & FlashcardStyle;
     emailFormData?: EmailFormData;
+    contactFormData?: ContactFormData;
     isInterim?: boolean;
     timestamp: number;
 }
