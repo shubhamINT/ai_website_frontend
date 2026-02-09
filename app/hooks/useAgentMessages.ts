@@ -163,6 +163,7 @@ export function useAgentMessages() {
                         ...existing,
                         ...(data.user_name && { user_name: data.user_name }),
                         ...(data.user_email && { user_email: data.user_email }),
+                        ...(data.user_phone && { user_phone: data.user_phone }),
                         ...(data.user_id && { user_id: data.user_id }),
                     }
                     localStorage.setItem('user_info', JSON.stringify(userInfo));

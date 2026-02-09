@@ -6,8 +6,9 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 interface UserInfo {
-    name: string;
-    id: string;
+    user_name: string;
+    user_phone?: string;
+    user_id: string;
 }
 
 export default function LandingPage() {

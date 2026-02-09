@@ -30,6 +30,13 @@ export interface FlashcardStyle {
 
 
 
+export interface UserInfo {
+    user_name: string;
+    user_email: string;
+    user_phone: string;
+    user_id: string;
+}
+
 export interface ContactFormData {
     user_name?: string;
     user_email?: string;
