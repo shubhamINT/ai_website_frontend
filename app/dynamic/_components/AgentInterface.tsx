@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteraction';
 import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
-import { EmailForm } from './EmailForm';
 import { ContactForm } from './ContactForm';
 import { RoomAudioRenderer } from '@livekit/components-react';
 
@@ -144,10 +143,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     }, [messages]);
 
     // [NEW] Check for email form message
-    const emailFormMessage = useMemo(() => {
-        const forms = messages.filter(m => m.type === 'email_form');
-        return forms.length > 0 ? forms[forms.length - 1] : null;
-    }, [messages]);
 
     // [NEW] Check for contact form message
     const contactFormMessage = useMemo(() => {
@@ -191,10 +186,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 {contactFormMessage && contactFormMessage.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactForm data={contactFormMessage.contactFormData} />
-                    </div>
-                ) : emailFormMessage && emailFormMessage.emailFormData ? (
-                    <div className="flex w-full justify-center">
-                        <EmailForm data={emailFormMessage.emailFormData} />
                     </div>
                 ) : (
                     <CardDisplay cards={flashcards} />

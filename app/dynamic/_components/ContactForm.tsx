@@ -94,10 +94,10 @@ export const ContactForm: React.FC<ContactFormProps> = ({ data }) => {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="w-[100px]">
+                                    <div className="w-[180px]">
                                         <input 
                                             type="text" 
-                                            defaultValue="+91"
+                                            defaultValue={data.user_phone || "+91"}
                                             className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-zinc-300"
                                         />
                                     </div>

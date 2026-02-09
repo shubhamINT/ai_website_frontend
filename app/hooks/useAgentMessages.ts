@@ -168,27 +168,6 @@ export function useAgentMessages() {
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
-                else if (topic == 'ui.email_form' || data.type === 'email_form') {
-                    console.log('--- EMAIL FORM (INCOMING) ---', data);
-                    const id = `email-form-${Date.now()}`;
-                    updateMessages((prev) => {
-                        const next = new Map(prev);
-                        next.set(id, {
-                            id,
-                            type: 'email_form',
-                            sender: 'agent',
-                            timestamp: Date.now(),
-                            isInterim: false,
-                            emailFormData: {
-                                user_name: data.data?.user_name || data.user_name,
-                                user_email: data.data?.user_email || data.user_email,
-                                email_subject: data.data?.email_subject || data.email_subject,
-                                email_body: data.data?.email_body || data.email_body,
-                            }
-                        });
-                        return next;
-                    });
-                }
                 else if (topic == 'ui.contact_form' || data.type === 'contact_form') {
                     console.log('--- CONTACT FORM (INCOMING) ---', data);
                     const id = `contact-form-${Date.now()}`;
