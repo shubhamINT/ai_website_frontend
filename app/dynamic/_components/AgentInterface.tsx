@@ -142,13 +142,20 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         return agentMsgs.length > 0 ? agentMsgs[agentMsgs.length - 1] : null;
     }, [messages]);
 
-    // [NEW] Check for email form message
-
-    // [NEW] Check for contact form message
-    const contactFormMessage = useMemo(() => {
-        const forms = messages.filter(m => m.type === 'contact_form');
-        return forms.length > 0 ? forms[forms.length - 1] : null;
+    // [NEW] Check for latest visual/interactive message
+    const latestVisualMessage = useMemo(() => {
+        // Filter for messages that have a visual/interactive component
+        const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form');
+        // Return the most recent one
+        return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
+
+    const contactFormMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'contact_form') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
 
     // Handle Agent Muting
     useEffect(() => {
@@ -183,7 +190,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
             {/* Central Content (Card Display or Email Form) */}
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
-                {contactFormMessage && contactFormMessage.contactFormData ? (
+                {latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactForm data={contactFormMessage.contactFormData} />
                     </div>
