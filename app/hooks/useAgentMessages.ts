@@ -192,6 +192,17 @@ export function useAgentMessages() {
                         });
                         return next;
                     });
+
+                    // Auto-dismiss submit UI after 2 seconds
+                    if (isSubmit) {
+                        setTimeout(() => {
+                            updateMessages((prev) => {
+                                const next = new Map(prev);
+                                next.delete(id);
+                                return next;
+                            });
+                        }, 2000);
+                    }
                 }
             } catch (e) { /* ignore non-json or noise */ }
         };

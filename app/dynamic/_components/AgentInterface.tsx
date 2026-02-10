@@ -200,11 +200,11 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
                 {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
-                        <ContactFormSubmit data={contactFormSubmitMessage.contactFormData} />
+                        <ContactFormSubmit key={contactFormSubmitMessage.id} data={contactFormSubmitMessage.contactFormData} />
                     </div>
                 ) : latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
-                        <ContactForm data={contactFormMessage.contactFormData} />
+                        <ContactForm key={contactFormMessage.id} data={contactFormMessage.contactFormData} />
                     </div>
                 ) : (
                     <CardDisplay cards={flashcards} />
