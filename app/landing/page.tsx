@@ -92,7 +92,7 @@ export default function LandingPage() {
                     >
                         <div className="relative flex h-14 items-center justify-center gap-3 overflow-hidden rounded-full bg-blue-600 px-10 text-base font-medium text-white shadow-lg shadow-blue-600/20 transition-transform duration-300 active:scale-95 group-hover:bg-blue-700">
 
-                            <span>Start Experience</span>
+                            <span>Talk to our website</span>
 
                             {/* Animated Arrow */}
                             <motion.svg
@@ -137,8 +137,8 @@ export default function LandingPage() {
                 transition={{ delay: 0.8, duration: 1 }}
                 className="absolute bottom-8 mx-auto flex w-full max-w-7xl justify-between px-8 text-xs font-medium text-slate-400"
             >
-                <div>INDUSNET © 2026</div>
-                <div className="hidden sm:block">AI RESEARCH DIVISION</div>
+                {/* <div>INDUSNET © 2026</div> */}
+                {/* <div className="hidden sm:block">AI RESEARCH DIVISION</div> */}
             </motion.footer>
         </div>
     );
