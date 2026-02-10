@@ -169,14 +169,17 @@ export function useAgentMessages() {
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
-                else if (topic == 'ui.contact_form' || data.type === 'contact_form') {
-                    console.log('--- CONTACT FORM (INCOMING) ---', data);
-                    const id = `contact-form-${Date.now()}`;
+                else if (topic === 'ui.contact_form' || data.type === 'contact_form' || data.type === 'contact_form_submit') {
+                    const isSubmit = data.type === 'contact_form_submit';
+                    const msgType = isSubmit ? 'contact_form_submit' : 'contact_form';
+                    const id = `${msgType}-${Date.now()}`;
+                    console.log(`--- CONTACT FORM (${isSubmit ? 'submitted' : 'preview'}) ---`, data);
+
                     updateMessages((prev) => {
                         const next = new Map(prev);
                         next.set(id, {
                             id,
-                            type: 'contact_form',
+                            type: msgType,
                             sender: 'agent',
                             timestamp: Date.now(),
                             isInterim: false,

@@ -47,7 +47,7 @@ export interface ContactFormData {
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit';
     text?: string;
     cardData?: {
         title: string;

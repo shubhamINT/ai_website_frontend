@@ -5,6 +5,7 @@ import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteractio
 import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
 import { ContactForm } from './ContactForm';
+import { ContactFormSubmit } from './ContactFormSubmit';
 import { RoomAudioRenderer } from '@livekit/components-react';
 
 interface AgentInterfaceProps {
@@ -145,13 +146,20 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     // [NEW] Check for latest visual/interactive message
     const latestVisualMessage = useMemo(() => {
         // Filter for messages that have a visual/interactive component
-        const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form');
+        const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form' || m.type === 'contact_form_submit');
         // Return the most recent one
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
 
     const contactFormMessage = useMemo(() => {
         if (latestVisualMessage?.type === 'contact_form') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const contactFormSubmitMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'contact_form_submit') {
             return latestVisualMessage;
         }
         return null;
@@ -190,7 +198,11 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
             {/* Central Content (Card Display or Email Form) */}
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
-                {latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
+                {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
+                    <div className="flex w-full justify-center">
+                        <ContactFormSubmit data={contactFormSubmitMessage.contactFormData} />
+                    </div>
+                ) : latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactForm data={contactFormMessage.contactFormData} />
                     </div>
