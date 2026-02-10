@@ -177,6 +177,16 @@ export function useAgentMessages() {
 
                     updateMessages((prev) => {
                         const next = new Map(prev);
+
+                        // Clear previous contact_form previews on submit so screen is clean after dismiss
+                        if (isSubmit) {
+                            for (const [key, msg] of next.entries()) {
+                                if (msg.type === 'contact_form') {
+                                    next.delete(key);
+                                }
+                            }
+                        }
+
                         next.set(id, {
                             id,
                             type: msgType,
