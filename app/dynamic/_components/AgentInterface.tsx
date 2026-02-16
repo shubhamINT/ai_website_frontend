@@ -221,11 +221,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 ) */}
             </div>
 
-            {/* Subtitles Overlay */}
+            {/* Subtitles Overlay (Commented out to hide from screen) */}
+            {/* 
             <SubtitleOverlay
                 text={latestAgentMessage?.text || null}
                 isInterim={latestAgentMessage?.isInterim || false}
-            />
+            /> 
+            */}
 
             {/* Content Wrapper for Controls (Z-Index ensures it's on top) */}
             <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
