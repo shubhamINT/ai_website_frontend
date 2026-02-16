@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FlashcardStyle } from '../../hooks/useAgentInteraction';
+import { FlashcardStyle } from '../../hooks/agentTypes';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { SmartIcon } from './SmartIcon';
 import { RichMedia } from './RichMedia';
 
@@ -52,7 +54,7 @@ const guessColor = (keyword: string) => {
     return 'zinc';
 };
 
-export const Flashcard = React.memo<FullFlashcardProps>(({
+export const Flashcard = React.memo(({
     title = "Information",
     value = "",
     accentColor,
@@ -66,7 +68,7 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
     animation_style,
     dynamicMedia,
     media
-}) => {
+}: FullFlashcardProps) => {
     // 1. Resolve Media (Handle both 'media' and 'dynamicMedia' props)
     const resolvedMedia = dynamicMedia || media;
 
@@ -119,23 +121,27 @@ export const Flashcard = React.memo<FullFlashcardProps>(({
         animation_style === 'slide' ? variants.slide :
                             /* default */ variants;
 
-    // 4. Content Renderer (Helper)
+    // 4. Content Renderer (Markdown)
     const renderContent = (text: string) => {
         if (!text) return null;
-        const lines = text.split('\n').filter(l => l.trim());
-        return lines.map((line, i) => {
-            const kvMatch = line.match(/^\*\*(.*?):\*\*\s*(.*)$/);
-            if (kvMatch) {
-                const [, label, val] = kvMatch;
-                return (
-                    <div key={i} className="flex flex-col gap-0 mb-1 last:mb-0 md:gap-0.5 md:mb-2">
-                        <span className={`text-[7px] font-bold uppercase tracking-widest md:text-[9px] ${normalizedTheme === 'neon' ? 'text-zinc-500' : 'text-zinc-400'}`}>{label}</span>
-                        <span className={`font-medium text-[10px] leading-tight md:text-sm ${normalizedTheme === 'neon' ? 'text-zinc-100' : 'text-zinc-800'}`}>{val}</span>
-                    </div>
-                );
-            }
-            return <p key={i} className="mb-0.5 last:mb-0 text-[10px] leading-relaxed opacity-90 md:mb-1.5 md:text-xs">{line.replace(/\*\*/g, '')}</p>;
-        });
+        
+        return (
+            <div className={`
+                markdown-render 
+                ${normalizedTheme === 'neon' ? 'prose-invert text-zinc-300' : 'text-zinc-600'}
+                prose prose-sm max-w-none
+                prose-p:leading-relaxed prose-p:my-1
+                prose-headings:my-2 prose-headings:font-bold prose-headings:text-inherit
+                prose-strong:text-inherit prose-strong:font-bold
+                prose-ul:my-2 prose-ul:list-disc prose-ul:pl-4
+                prose-li:my-0.5
+                text-[11px] md:text-sm
+            `}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {text}
+                </ReactMarkdown>
+            </div>
+        );
     };
 
     return (
