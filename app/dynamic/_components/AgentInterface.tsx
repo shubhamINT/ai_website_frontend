@@ -6,6 +6,7 @@ import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
 import { ContactForm } from './ContactForm';
 import { ContactFormSubmit } from './ContactFormSubmit';
+import { StarterScreen } from './StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
 
 interface AgentInterfaceProps {
@@ -206,19 +207,15 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                     <div className="flex w-full justify-center">
                         <ContactForm key={contactFormMessage.id} data={contactFormMessage.contactFormData} />
                     </div>
-                ) : (
+                ) : flashcards.length > 0 ? (
                     <CardDisplay cards={flashcards} />
+                ) : (
+                    <StarterScreen 
+                        onSelectQuestion={sendText} 
+                        activeTrack={activeTrack} 
+                        userTrack={userTrack} 
+                    />
                 )}
-
-                {/* Empty State / Prompt if no card */}
-                {/* Empty State / Visualizer if no card */}
-                {/* flashcards.length === 0 && (
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="relative h-48 w-64 sm:h-64 sm:w-80 md:h-80 md:w-[400px]">
-                            <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} />
-                        </div>
-                    </div>
-                ) */}
             </div>
 
             {/* Subtitles Overlay (Commented out to hide from screen) */}
