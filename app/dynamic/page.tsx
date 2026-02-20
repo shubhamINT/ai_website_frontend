@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useLiveKitConnection } from "../hooks/useLiveKitConnection";
 import { AgentInterface } from "./_components/AgentInterface";
+import { ThreeBackground } from "./_components/ThreeBackground";
 
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 
@@ -54,6 +55,9 @@ export default function DynamicPage() {
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute -top-[20%] left-1/2 h-[1000px] w-[1000px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(219,234,254,0.4)_0%,rgba(255,255,255,0)_70%)] blur-3xl opacity-60"></div>
         <div className="absolute top-[40%] -right-[10%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(224,231,255,0.3)_0%,rgba(255,255,255,0)_70%)] blur-3xl opacity-50"></div>
+        
+        {/* Animated Particles */}
+        <ThreeBackground />
       </div>
 
       {/* Main Container */}
