@@ -95,7 +95,7 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 + idx * 0.1, duration: 0.5 }}
                         onClick={() => onSelectQuestion(q.text)}
-                        className="group relative flex flex-col items-start gap-5 overflow-hidden rounded-[2.5rem] bg-white/95 p-8 text-left backdrop-blur-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.12)] ring-1 ring-white shadow-[0_20px_50px_rgba(0,0,0,0.04)]"
+                        className="group relative flex flex-col items-start gap-5 overflow-hidden rounded-[2.5rem] bg-white/70 p-8 text-left backdrop-blur-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] ring-1 ring-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.02)]"
                     >
                         {/* Ambient Glow Overlay (Matches Flashcard style) */}
                         <div className={`absolute -right-16 -top-16 h-32 w-32 rounded-full ${colorMap[q.color].glow} blur-[40px] opacity-40 transition-all duration-700 group-hover:scale-150 group-hover:opacity-80`} />

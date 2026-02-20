@@ -230,7 +230,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
                 {/* Bottom Control Bar */}
                 <div className="pointer-events-auto flex w-full justify-center p-4">
-                    <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/90 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-zinc-200 backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)]">
+                    <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/80 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)]">
 
                         {/* AI Mini Visualizer */}
                         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 sm:h-12 sm:w-20 flex items-center justify-center">
