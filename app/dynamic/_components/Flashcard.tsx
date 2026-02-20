@@ -161,66 +161,86 @@ export const Flashcard = React.memo(({
             {/* Ambient Glow */}
             <div className={`absolute -right-20 -top-20 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[30px] md:blur-[60px] opacity-25 md:opacity-40`} />
 
-            <div className={`relative z-10 flex flex-col h-full gap-2 md:gap-5 ${layout === 'media-top' ? 'justify-start' : 'justify-between'}`}>
+            <div className={`relative z-10 h-full ${layout === 'horizontal' ? 'flex flex-col md:flex-row gap-4' : 'flex flex-col gap-2 md:gap-5'} ${layout === 'media-top' ? 'justify-start' : layout !== 'horizontal' ? 'justify-between' : ''}`}>
 
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 md:gap-4">
-                        {/* Smart Icon Wrapper */}
-                        <div className={`
-                            flex h-7 w-7 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-2xl
-                            ${normalizedTheme === 'neon' ? `bg-gradient-to-br ${colors.gradient} text-white` : `bg-white ${colors.text} ring-1 ring-zinc-100 shadow-sm`}
-                            transition-all duration-300 group-hover:scale-110
-                        `}>
-                            <SmartIcon
-                                iconRef={smartIcon?.ref || icon || 'info'}
-                                type={smartIcon?.type || 'static'}
-                                className="w-3.5 h-3.5 md:w-6 md:h-6"
+                {/* Horizontal Layout: Left Side Media */}
+                {layout === 'horizontal' && (image || resolvedMedia) && (
+                    <div className="w-full md:w-1/3 shrink-0">
+                         <div className="rounded-2xl overflow-hidden h-full min-h-[140px] relative">
+                            <RichMedia
+                                urls={resolvedMedia?.urls}
+                                query={resolvedMedia?.query || (image ? undefined : title)}
+                                source={resolvedMedia?.source}
+                                aspectRatio={resolvedMedia?.aspectRatio || 'square'}
+                                alt={title}
                             />
-                        </div>
-
-                        <div>
-                            {/* <div className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-0.5">Insight</div> */}
-                            <h3 className={`text-xs md:text-lg font-bold leading-tight ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
-                                {title}
-                            </h3>
-                        </div>
-                    </div>
-
-                    {/* Status Dot */}
-                    {visual_intent === 'processing' ? (
-                        <div className="flex space-x-0.5 md:space-x-1">
-                            <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                            <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                            <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
-                        </div>
-                    ) : (
-                        <div className={`w-1 h-1 md:w-2 md:h-2 rounded-full ${visual_intent === 'urgent' ? 'bg-red-500 animate-ping' : 'bg-blue-500'}`} />
-                    )}
-                </div>
-
-                {/* Dynamic Media / URLs / Static Image */}
-                {(image || resolvedMedia) && (
-                    <div className="mt-2 w-full">
-                        <RichMedia
-                            urls={resolvedMedia?.urls}
-                            query={resolvedMedia?.query || (image ? undefined : title)}
-                            source={resolvedMedia?.source}
-                            aspectRatio={resolvedMedia?.aspectRatio || 'video'}
-                            alt={title}
-                        />
-                        {/* Fallback for old static image if no dynamicMedia exists */}
-                        {!resolvedMedia && image?.url && (
-                            <div className="rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 aspect-video w-full">
-                                <img src={image.url} alt={image.alt} className="w-full h-full object-cover" />
-                            </div>
-                        )}
+                            {!resolvedMedia && image?.url && (
+                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover" />
+                            )}
+                         </div>
                     </div>
                 )}
 
-                {/* Content */}
-                <div className={`text-sm ${normalizedTheme === 'neon' ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                    {renderContent(value)}
+                <div className={`flex flex-col ${layout === 'horizontal' ? 'w-full md:w-2/3 h-full' : 'w-full'}`}>
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2 md:gap-4">
+                            {/* Smart Icon Wrapper */}
+                            <div className={`
+                                flex h-7 w-7 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-2xl
+                                ${normalizedTheme === 'neon' ? `bg-gradient-to-br ${colors.gradient} text-white` : `bg-white ${colors.text} ring-1 ring-zinc-100 shadow-sm`}
+                                transition-all duration-300 group-hover:scale-110
+                            `}>
+                                <SmartIcon
+                                    iconRef={smartIcon?.ref || icon || 'info'}
+                                    type={smartIcon?.type || 'static'}
+                                    className="w-3.5 h-3.5 md:w-6 md:h-6"
+                                />
+                            </div>
+
+                            <div>
+                                {/* <div className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-0.5">Insight</div> */}
+                                <h3 className={`text-xs md:text-lg font-bold leading-tight ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
+                                    {title}
+                                </h3>
+                            </div>
+                        </div>
+
+                        {/* Status Dot */}
+                        {visual_intent === 'processing' ? (
+                            <div className="flex space-x-0.5 md:space-x-1">
+                                <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+                            </div>
+                        ) : (
+                            <div className={`w-1 h-1 md:w-2 md:h-2 rounded-full ${visual_intent === 'urgent' ? 'bg-red-500 animate-ping' : 'bg-blue-500'}`} />
+                        )}
+                    </div>
+
+                    {/* Default/Vertical Media */}
+                    {layout !== 'horizontal' && (image || resolvedMedia) && (
+                        <div className="mt-2 w-full">
+                            <RichMedia
+                                urls={resolvedMedia?.urls}
+                                query={resolvedMedia?.query || (image ? undefined : title)}
+                                source={resolvedMedia?.source}
+                                aspectRatio={resolvedMedia?.aspectRatio || 'video'}
+                                alt={title}
+                            />
+                            {/* Fallback for old static image if no dynamicMedia exists */}
+                            {!resolvedMedia && image?.url && (
+                                <div className="rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 aspect-video w-full">
+                                    <img src={image.url} alt={image.alt} className="w-full h-full object-cover" />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Content */}
+                    <div className={`text-sm ${normalizedTheme === 'neon' ? 'text-zinc-300' : 'text-zinc-600'} ${layout === 'horizontal' ? 'mt-1 flex-grow overflow-auto' : ''}`}>
+                        {renderContent(value)}
+                    </div>
                 </div>
             </div>
         </motion.div>
