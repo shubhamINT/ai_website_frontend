@@ -128,6 +128,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     };
 
     const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.5rem] group ring-1 ring-black/5 shadow-inner bg-zinc-100/50 ${ratioMap[aspectRatio]}`;
+    const autoRatioFallback = aspectRatio === 'auto' ? 'aspect-video' : '';
 
     // Priority 1: Direct URLs
     if (safeUrls && safeUrls.length > 0) {
@@ -231,7 +232,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     // Priority 2: Dynamic Search Fallback
     if (query) {
         return (
-            <div className={containerClasses}>
+            <div className={`${containerClasses} ${autoRatioFallback}`}>
                 <DynamicImage
                     query={query}
                     source={source}

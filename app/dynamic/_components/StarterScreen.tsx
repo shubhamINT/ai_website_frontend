@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { SmartIcon } from './SmartIcon';
-import { BarVisualizer } from './BarVisualizer';
 
 interface StarterScreenProps {
     onSelectQuestion: (question: string) => void;
@@ -72,18 +71,10 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-4xl font-black tracking-tight text-zinc-900 md:text-6xl"
+                    className="text-4xl font-black tracking-tight text-zinc-800 md:text-6xl"
                 >
                     How can I help you today?
                 </motion.h1>
-                <motion.p
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 max-w-2xl text-lg text-zinc-500/80 md:text-xl font-medium"
-                >
-                    Select a topic below or speak naturally to explore how we can elevate your business.
-                </motion.p>
             </div>
 
             {/* Questions Grid */}
@@ -132,4 +123,3 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
         </div>
     );
 };
-
