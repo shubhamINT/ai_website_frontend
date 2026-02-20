@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   images: {
+    qualities: [75, 85], // Added quality 85 as per warning
     remotePatterns: [
       {
         protocol: 'https',
@@ -23,6 +24,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
       },
     ],
     dangerouslyAllowSVG: true,

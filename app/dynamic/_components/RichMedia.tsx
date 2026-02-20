@@ -10,6 +10,7 @@ interface RichMediaProps {
     source?: 'unsplash' | 'pexels' | 'pixabay';
     aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
     alt?: string;
+    mediaType?: 'image' | 'video' | 'youtube' | 'vimeo'; // Explicit override
 }
 
 type MediaType = 'image' | 'video' | 'youtube' | 'vimeo' | 'unknown';
@@ -19,7 +20,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     query,
     source,
     aspectRatio = 'video',
-    alt = 'Media content'
+    alt = 'Media content',
+    mediaType: explicitMediaType
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +43,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
 
     // Helpers to detect media type
     const getMediaType = (url: string): MediaType => {
+        if (explicitMediaType) return explicitMediaType; // Use explicit type if provided
         if (!url) return 'unknown';
         const u = url.toLowerCase();
 

@@ -3,7 +3,7 @@ export type InteractionMode = 'voice' | 'text';
 
 export interface FlashcardStyle {
     accentColor?: string;
-    icon?: string;
+    icon?: string | { type: 'static'; ref: string; fallback?: string };
     theme?: 'glass' | 'solid' | 'gradient' | 'neon' | 'highlight' | 'info' | 'light';
     size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg';
     layout?: 'default' | 'horizontal' | 'centered' | 'media-top';
@@ -25,6 +25,7 @@ export interface FlashcardStyle {
         query?: string;
         source?: 'unsplash' | 'pexels';
         aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
+        mediaType?: 'image' | 'video';
     };
 }
 

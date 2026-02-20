@@ -9,7 +9,14 @@ import { RichMedia } from './RichMedia';
 interface FlashcardProps {
     title: string;
     value: string;
-    media?: any; // Add support for the media property from your data
+    media?: {
+        urls?: string[];
+        query?: string;
+        source?: 'unsplash' | 'pexels' | 'pixabay';
+        aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
+        mediaType?: 'image' | 'video'; // Added mediaType
+    };
+    icon?: string | { type: 'static'; ref: string; fallback?: string }; // Expanded icon prop
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
@@ -70,7 +77,7 @@ export const Flashcard = React.memo(({
     media
 }: FullFlashcardProps) => {
     // 1. Resolve Media (Handle both 'media' and 'dynamicMedia' props)
-    const resolvedMedia = dynamicMedia || media;
+    const resolvedMedia = (dynamicMedia || media) as FlashcardProps['media'];
 
     // 2. Determine Colors
     const detectedColorName = (accentColor as string) || getIntentColors(visual_intent, guessColor(title || value));
@@ -136,6 +143,7 @@ export const Flashcard = React.memo(({
                 prose-ul:my-2 prose-ul:list-disc prose-ul:pl-4
                 prose-li:my-0.5
                 text-[11px] md:text-sm
+                ${layout === 'centered' ? 'text-center [&>*]:text-center' : ''}
             `}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {text}
@@ -161,7 +169,10 @@ export const Flashcard = React.memo(({
             {/* Ambient Glow */}
             <div className={`absolute -right-20 -top-20 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[30px] md:blur-[60px] opacity-25 md:opacity-40`} />
 
-            <div className={`relative z-10 h-full ${layout === 'horizontal' ? 'flex flex-col md:flex-row gap-4' : 'flex flex-col gap-2 md:gap-5'} ${layout === 'media-top' ? 'justify-start' : layout !== 'horizontal' ? 'justify-between' : ''}`}>
+            <div className={`relative z-10 h-full 
+                ${layout === 'horizontal' ? 'flex flex-col md:flex-row gap-4' : 'flex flex-col gap-2 md:gap-5'} 
+                ${layout === 'media-top' ? 'justify-start' : layout === 'centered' ? 'justify-center text-center items-center' : layout !== 'horizontal' ? 'justify-between' : ''}
+            `}>
 
                 {/* Horizontal Layout: Left Side Media */}
                 {layout === 'horizontal' && (image || resolvedMedia) && (
@@ -173,6 +184,7 @@ export const Flashcard = React.memo(({
                                 source={resolvedMedia?.source}
                                 aspectRatio={resolvedMedia?.aspectRatio || 'square'}
                                 alt={title}
+                                mediaType={resolvedMedia?.mediaType}
                             />
                             {!resolvedMedia && image?.url && (
                                 <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover" />
@@ -183,8 +195,8 @@ export const Flashcard = React.memo(({
 
                 <div className={`flex flex-col ${layout === 'horizontal' ? 'w-full md:w-2/3 h-full' : 'w-full'}`}>
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2 md:gap-4">
+                    <div className={`flex items-start mb-2 ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
+                        <div className={`flex items-center gap-2 md:gap-4 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
                             {/* Smart Icon Wrapper */}
                             <div className={`
                                 flex h-7 w-7 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-2xl
@@ -192,7 +204,7 @@ export const Flashcard = React.memo(({
                                 transition-all duration-300 group-hover:scale-110
                             `}>
                                 <SmartIcon
-                                    iconRef={smartIcon?.ref || icon || 'info'}
+                                    iconRef={smartIcon?.ref || (typeof icon === 'object' ? icon.ref : icon) || 'info'}
                                     type={smartIcon?.type || 'static'}
                                     className="w-3.5 h-3.5 md:w-6 md:h-6"
                                 />
@@ -227,6 +239,7 @@ export const Flashcard = React.memo(({
                                 source={resolvedMedia?.source}
                                 aspectRatio={resolvedMedia?.aspectRatio || 'video'}
                                 alt={title}
+                                mediaType={resolvedMedia?.mediaType}
                             />
                             {/* Fallback for old static image if no dynamicMedia exists */}
                             {!resolvedMedia && image?.url && (
