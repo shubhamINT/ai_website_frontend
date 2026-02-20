@@ -14,29 +14,29 @@ export const ContactForm: React.FC<ContactFormProps> = ({ data }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -30, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-            className="relative w-full max-w-4xl overflow-hidden rounded-[2.5rem] bg-black text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10"
+            className="relative w-full max-w-4xl overflow-hidden rounded-[2.5rem] bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-white/60"
         >
-            <div className="flex flex-col md:flex-row min-h-[500px]">
-                {/* Left Side: Visual / Paper Plane */}
-                <div className="relative w-full md:w-[45%] bg-[#0a0a0a] flex items-center justify-center p-8 overflow-hidden border-b md:border-b-0 md:border-r border-white/5">
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
-                        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-[80px]" />
-                        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-[100px]" />
-                    </div>
+            {/* Ambient background gradients */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[100px]" />
+                <div className="absolute top-[30%] -right-[10%] w-[50%] h-[50%] bg-purple-500/5 rounded-full blur-[100px]" />
+            </div>
 
-                    <div className="relative z-10 flex flex-col items-center">
+            <div className="relative z-10 flex flex-col md:flex-row min-h-[500px]">
+                {/* Left Side: Visual / Paper Plane */}
+                <div className="relative w-full md:w-[40%] bg-zinc-50/50 flex items-center justify-center p-8 overflow-hidden border-b md:border-b-0 md:border-r border-black/5">
+                     <div className="relative z-10 flex flex-col items-center">
                         <motion.div
                             animate={{ 
-                                y: [0, -10, 0],
+                                y: [0, -12, 0],
                                 rotate: [0, -2, 2, 0]
                             }}
                             transition={{ 
-                                duration: 4, 
+                                duration: 5, 
                                 repeat: Infinity,
                                 ease: "easeInOut"
                             }}
-                            className="w-full max-w-[280px] drop-shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
+                            className="w-full max-w-[240px] drop-shadow-xl"
                         >
                              <img 
                                 src="https://intglobal.com/wp-content/uploads/2025/01/image-1226x1511-1.png" 
@@ -48,57 +48,57 @@ export const ContactForm: React.FC<ContactFormProps> = ({ data }) => {
                 </div>
 
                 {/* Right Side: Form Fields */}
-                <div className="w-full md:w-[55%] p-8 md:p-12 space-y-8 flex flex-col justify-center">
-                    <div className="space-y-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Contact Us</span>
-                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+                <div className="w-full md:w-[60%] p-8 md:p-12 space-y-8 flex flex-col justify-center">
+                    <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/80">Contact Us</span>
+                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900">
                             Let's connect!
                         </h2>
                     </div>
 
-                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                        <div className="grid grid-cols-1 gap-6">
+                    <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+                        <div className="grid grid-cols-1 gap-5">
                             {/* Name Field */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-zinc-400 ml-1">Name</label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-500 ml-1 uppercase tracking-wide">Name</label>
                                 <input 
                                     type="text" 
                                     defaultValue={data.user_name}
-                                    placeholder="Name"
-                                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all placeholder:text-zinc-600"
+                                    placeholder="Your Name"
+                                    className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-zinc-400 shadow-sm"
                                 />
                             </div>
 
                             {/* Email Field */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-zinc-400 ml-1">Email <span className="text-red-500">*</span></label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-500 ml-1 uppercase tracking-wide">Email <span className="text-red-500">*</span></label>
                                 <input 
                                     type="email" 
                                     defaultValue={data.user_email}
-                                    placeholder="Company Email*"
-                                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all placeholder:text-zinc-600"
+                                    placeholder="name@company.com"
+                                    className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-zinc-400 shadow-sm"
                                 />
                             </div>
 
                             {/* Phone and Country */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-zinc-400 ml-1">Phone number <span className="text-red-500">*</span></label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-500 ml-1 uppercase tracking-wide">Phone number <span className="text-red-500">*</span></label>
                                 <div className="flex gap-3">
                                     <div className="relative flex-1">
-                                        <select className="w-full appearance-none bg-zinc-900/50 border border-white/5 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-zinc-300">
+                                        <select className="w-full appearance-none bg-white border border-zinc-200 rounded-2xl px-5 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
                                             <option>India (भारत)</option>
                                         </select>
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 text-zinc-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                                                 <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="w-[180px]">
+                                    <div className="w-[160px]">
                                         <input 
                                             type="text" 
                                             defaultValue={data.user_phone || "+91"}
-                                            className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-zinc-300"
+                                            className="w-full bg-white border border-zinc-200 rounded-2xl px-4 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                                         />
                                     </div>
                                 </div>
@@ -106,12 +106,13 @@ export const ContactForm: React.FC<ContactFormProps> = ({ data }) => {
 
 
                             {/* Project Details */}
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-500 ml-1 uppercase tracking-wide">Message</label>
                                 <textarea 
                                     rows={3}
                                     defaultValue={data.contact_details}
-                                    placeholder="Anything that you would like to add about the project?"
-                                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-white/10 transition-all placeholder:text-zinc-600 resize-none"
+                                    placeholder="Tell us about your project..."
+                                    className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-zinc-400 resize-none shadow-sm"
                                 />
                             </div>
                         </div>
