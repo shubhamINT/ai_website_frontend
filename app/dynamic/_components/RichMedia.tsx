@@ -27,7 +27,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     const [isLoading, setIsLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
 
-    const safeUrls = urls || [];
+    const safeUrls = Array.isArray(urls) ? urls : (typeof urls === 'string' ? [urls] : []);
 
     // Reset index if URLs change
     useEffect(() => {
