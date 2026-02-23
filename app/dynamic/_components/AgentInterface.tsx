@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteraction';
@@ -63,21 +62,22 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     );
     if (validCards.length === 0) return null;
 
-    // Dynamic size based on total cards
+    // Dynamic size based on total cards (UPDATED logic to prevent early shrinking)
     const cardSize = useMemo(() => {
         const count = validCards.length;
-        if (count === 1) return 'medium';
-        if (count <= 2) return 'medium';
-        if (count <= 4) return 'small';
-        return 'tiny';
+        if (count <= 4) return 'medium'; // Up to 4 cards stay a good, readable size
+        if (count <= 6) return 'small';  // 5-6 cards will slightly shrink to fit
+        return 'tiny';                   // 7+ cards will become tiny
     }, [validCards.length]);
 
     return (
-        <div className="relative flex w-full max-w-7xl flex-col items-center">
+        // UPDATED wrapper: changed max-w-7xl to max-w-[95vw] xl:max-w-screen-2xl to utilize wide screen space
+        <div className="relative flex w-full max-w-[95vw] xl:max-w-screen-2xl flex-col items-center">
             {/* Flex layout for symmetrical centering (3 above, 2 below etc) */}
             <motion.div
                 layout
-                className="relative z-10 flex w-full flex-wrap justify-center gap-3 px-2 md:px-6 md:gap-6"
+                // UPDATED flex container: increased gap for larger screens to space them nicely (xl:gap-10)
+                className="relative z-10 flex w-full flex-wrap justify-center gap-4 px-4 md:px-8 md:gap-6 xl:gap-10"
             >
                 <AnimatePresence mode="popLayout">
                     {validCards.map((card) => (
