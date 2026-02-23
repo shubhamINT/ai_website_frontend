@@ -18,7 +18,6 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
 
     const processedText = useMemo(() => {
         if (!text) return null;
-        // If it's too long, only show the last sentence or last ~100 chars
         if (text.length > 120) {
             const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
             return sentences[sentences.length - 1].trim();
@@ -56,28 +55,24 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
 const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     if (cards.length === 0) return null;
 
-    // Filter out cards without cardData
     const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
         card && card.cardData !== undefined && card.cardData.title !== undefined
     );
     if (validCards.length === 0) return null;
 
-    // Dynamic size based on total cards (UPDATED logic to prevent early shrinking)
     const cardSize = useMemo(() => {
         const count = validCards.length;
-        if (count <= 4) return 'medium'; // Up to 4 cards stay a good, readable size
-        if (count <= 6) return 'small';  // 5-6 cards will slightly shrink to fit
-        return 'tiny';                   // 7+ cards will become tiny
+        if (count <= 4) return 'medium'; 
+        if (count <= 6) return 'small';  
+        return 'tiny';                   
     }, [validCards.length]);
 
     return (
-        // UPDATED wrapper: changed max-w-7xl to max-w-[95vw] xl:max-w-screen-2xl to utilize wide screen space
         <div className="relative flex w-full max-w-[95vw] xl:max-w-screen-2xl flex-col items-center">
-            {/* Flex layout for symmetrical centering (3 above, 2 below etc) */}
+            {/* items-stretch guarantees absolute symmetrical heights across the row */}
             <motion.div
                 layout
-                // UPDATED flex container: increased gap for larger screens to space them nicely (xl:gap-10)
-                className="relative z-10 flex w-full flex-wrap justify-center gap-4 px-4 md:px-8 md:gap-6 xl:gap-10"
+                className="relative z-10 flex w-full flex-wrap justify-center items-stretch gap-4 px-4 md:px-8 md:gap-6 xl:gap-10"
             >
                 <AnimatePresence mode="popLayout">
                     {validCards.map((card) => (
@@ -88,7 +83,8 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            className="flex justify-center"
+                            // The wrapper flexibly adopts the stretched height
+                            className="flex w-full sm:w-auto"
                         >
                             <Flashcard {...card.cardData} size={cardSize} />
                         </motion.div>
@@ -96,7 +92,6 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Optional card count indicator */}
             {validCards.length > 3 && (
                 <div className="mt-4 md:mt-6 flex items-center gap-2 rounded-full bg-white/40 px-3 py-1.5 md:px-4 md:py-2 backdrop-blur-xl ring-1 ring-black/5 shadow-lg">
                     <div className="flex gap-1 md:gap-1.5">
@@ -133,22 +128,17 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     const [isMuted, setIsMuted] = useState(false);
     const [isAgentMuted, setIsAgentMuted] = useState(false);
 
-    // Compute flashcards and latest agent message
     const flashcards = useMemo(() => {
         return messages.filter(m => m.type === 'flashcard');
     }, [messages]);
 
     const latestAgentMessage = useMemo(() => {
         const agentMsgs = messages.filter(m => m.sender === 'agent' && m.type === 'text');
-        // We want the very last one, even if interim
         return agentMsgs.length > 0 ? agentMsgs[agentMsgs.length - 1] : null;
     }, [messages]);
 
-    // [NEW] Check for latest visual/interactive message
     const latestVisualMessage = useMemo(() => {
-        // Filter for messages that have a visual/interactive component
         const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form' || m.type === 'contact_form_submit');
-        // Return the most recent one
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
 
@@ -166,7 +156,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         return null;
     }, [latestVisualMessage]);
 
-    // Handle Agent Muting
     useEffect(() => {
         if (activeTrack?.publication?.track && 'setVolume' in activeTrack.publication.track) {
             (activeTrack.publication.track as any).setVolume(isAgentMuted ? 0 : 1);
@@ -193,11 +182,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl bg-transparent ring-1 ring-black/5 shadow-2xl">
-
-            {/* Audio Renderer */}
             <RoomAudioRenderer />
-
-            {/* Central Content (Card Display or Email Form) */}
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
                 {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
@@ -218,26 +203,14 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 )}
             </div>
 
-            {/* Subtitles Overlay (Commented out to hide from screen) */}
-            {/* 
-            <SubtitleOverlay
-                text={latestAgentMessage?.text || null}
-                isInterim={latestAgentMessage?.isInterim || false}
-            /> 
-            */}
-
-            {/* Content Wrapper for Controls (Z-Index ensures it's on top) */}
             <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
-                {/* Bottom Control Bar */}
                 <div className="pointer-events-auto flex w-full justify-center p-4">
                     <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/80 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)]">
 
-                        {/* AI Mini Visualizer */}
                         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 sm:h-12 sm:w-20 flex items-center justify-center">
                             <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} mode="mini" />
                         </div>
 
-                        {/* Agent Mute Toggle (Speaker Icon) */}
                         <button
                             onClick={() => setIsAgentMuted(!isAgentMuted)}
                             className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300 sm:h-11 sm:w-11 ${isAgentMuted
@@ -260,7 +233,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             )}
                         </button>
 
-                        {/* Mic Toggle */}
                         <button
                             onClick={handleMicToggle}
                             className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300 sm:h-11 sm:w-11 ${mode === 'voice' && !isMuted
@@ -284,7 +256,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             )}
                         </button>
 
-                        {/* Input Field */}
                         <div className="relative flex min-w-0 flex-1 items-center group/input px-1 transition-all duration-300 sm:px-2">
                             <input
                                 type="text"
@@ -312,10 +283,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             </button>
                         </div>
 
-                        {/* Separator */}
                         <div className="h-5 w-px shrink-0 bg-zinc-200 mx-0.5 sm:h-6 sm:mx-1"></div>
 
-                        {/* Stop / Disconnect */}
                         <button
                             onClick={onDisconnect}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-red-50 hover:text-red-500 sm:h-11 sm:w-11"

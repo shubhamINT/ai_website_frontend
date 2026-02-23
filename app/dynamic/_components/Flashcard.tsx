@@ -14,14 +14,13 @@ interface FlashcardProps {
         query?: string;
         source?: 'unsplash' | 'pexels' | 'pixabay';
         aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
-        mediaType?: 'image' | 'video'; // Added mediaType
+        mediaType?: 'image' | 'video'; 
     };
-    icon?: string | { type: 'static'; ref: string; fallback?: string }; // Expanded icon prop
+    icon?: string | { type: 'static'; ref: string; fallback?: string }; 
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
 
-// Map visual intent to color schemes
 const getIntentColors = (intent: string = 'neutral', fallbackColor: string) => {
     const map: Record<string, string> = {
         urgent: 'rose',
@@ -31,12 +30,10 @@ const getIntentColors = (intent: string = 'neutral', fallbackColor: string) => {
         cyberpunk: 'violet',
         neutral: 'zinc'
     };
-    // If intent is valid, use it. Else fallback to the guessed 'accentColor' or 'zinc'
     const colorKey = map[intent] ? map[intent] : (fallbackColor || 'zinc');
     return colorKey;
 };
 
-// Expanded Color Map
 const colorMap: Record<string, any> = {
     emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-100', glow: 'bg-emerald-500/10', border: 'border-emerald-200', gradient: 'from-emerald-500 to-emerald-600' },
     blue: { bg: 'bg-blue-50', text: 'text-blue-600', ring: 'ring-blue-100', glow: 'bg-blue-500/10', border: 'border-blue-200', gradient: 'from-blue-500 to-blue-600' },
@@ -50,7 +47,6 @@ const colorMap: Record<string, any> = {
     zinc: { bg: 'bg-zinc-50', text: 'text-zinc-600', ring: 'ring-zinc-100', glow: 'bg-zinc-500/10', border: 'border-zinc-200', gradient: 'from-zinc-500 to-zinc-600' }
 };
 
-// Fallback logic for when backend sends nothing
 const guessColor = (keyword: string) => {
     const k = keyword.toLowerCase();
     if (k.includes('price') || k.includes('cost') || k.includes('money') || k.includes('success')) return 'emerald';
@@ -65,8 +61,8 @@ export const Flashcard = React.memo(({
     title = "Information",
     value = "",
     accentColor,
-    icon,        // Static fallback from old interface
-    smartIcon,   // New rich icon interface
+    icon,        
+    smartIcon,   
     theme,
     size,
     layout = 'default',
@@ -76,14 +72,11 @@ export const Flashcard = React.memo(({
     dynamicMedia,
     media
 }: FullFlashcardProps) => {
-    // 1. Resolve Media (Handle both 'media' and 'dynamicMedia' props)
-    const resolvedMedia = (dynamicMedia || media) as FlashcardProps['media'];
 
-    // 2. Determine Colors
+    const resolvedMedia = (dynamicMedia || media) as FlashcardProps['media'];
     const detectedColorName = (accentColor as string) || getIntentColors(visual_intent, guessColor(title || value));
     const colors = colorMap[detectedColorName] || colorMap.zinc;
 
-    // 2. Determine Styling Classes
     const normalizedSize = (size === 'tiny' || size === 'extra-small') ? 'tiny' :
         (size === 'sm' || size === 'small') ? 'small' :
             (size === 'lg' || size === 'large') ? 'large' : 'medium';
@@ -103,7 +96,6 @@ export const Flashcard = React.memo(({
         large: 'p-4 w-full max-w-4xl md:p-8'
     };
 
-    // 3. Animation Variants
     const variants = {
         hidden: { opacity: 0, y: 10, scale: 0.98 },
         visible: {
@@ -123,12 +115,9 @@ export const Flashcard = React.memo(({
         }
     };
 
-    // Choose variant based on style
     const selectedVariant = animation_style === 'pop' ? variants.pop :
-        animation_style === 'slide' ? variants.slide :
-                            /* default */ variants;
+        animation_style === 'slide' ? variants.slide : variants;
 
-    // 4. Content Renderer (Markdown)
     const renderContent = (text: string) => {
         if (!text) return null;
         
@@ -154,104 +143,101 @@ export const Flashcard = React.memo(({
 
     return (
         <motion.div
-            layout // Enable layout animations for smooth reordering
+            layout 
             initial="hidden"
             animate="visible"
             exit="exit"
             variants={selectedVariant as any}
+            // `h-full flex flex-col w-full` allows the card to stretch uniformly with its siblings
             className={`
                 relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem]
                 ${themeClasses[normalizedTheme as keyof typeof themeClasses]} 
                 ${sizeClasses[normalizedSize]}
-                group transition-colors
+                group transition-colors h-full flex flex-col w-full
             `}
         >
-            {/* Ambient Glow */}
             <div className={`absolute -right-20 -top-20 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[30px] md:blur-[60px] opacity-25 md:opacity-40`} />
 
-            <div className={`relative z-10 h-full 
-                ${layout === 'horizontal' ? 'flex flex-col md:flex-row gap-4' : 'flex flex-col gap-2 md:gap-5'} 
-                ${layout === 'media-top' ? 'justify-start' : layout === 'centered' ? 'justify-center text-center items-center' : layout !== 'horizontal' ? 'justify-between' : ''}
+            {/* Inner Content flex-grow ensures space is beautifully utilized if card stretches */}
+            <div className={`relative z-10 flex flex-col flex-grow
+                ${layout === 'horizontal' ? 'md:flex-row gap-4 md:gap-5 md:items-center' : 'gap-3 md:gap-4'} 
+                ${layout === 'centered' ? 'justify-center text-center items-center' : ''}
             `}>
 
-                {/* Horizontal Layout: Left Side Media */}
+                {/* Horizontal Layout Image: Keeps its perfect 4:5 bounding box and stays centered vertically */}
                 {layout === 'horizontal' && (image || resolvedMedia) && (
-                    <div className="w-full md:w-1/3 shrink-0">
-                         <div className="rounded-2xl overflow-hidden h-full min-h-[140px] relative">
+                    <div className="w-full sm:w-[130px] md:w-[150px] shrink-0 mx-auto md:my-auto">
+                         <div className="rounded-xl md:rounded-2xl overflow-hidden relative shadow-md ring-1 ring-black/5 bg-zinc-100 aspect-[4/5] w-full">
                             <RichMedia
                                 urls={resolvedMedia?.urls}
                                 query={resolvedMedia?.query || (image ? undefined : title)}
                                 source={resolvedMedia?.source}
-                                aspectRatio={resolvedMedia?.aspectRatio || 'square'}
+                                aspectRatio={resolvedMedia?.aspectRatio || 'portrait'} 
                                 alt={title}
                                 mediaType={resolvedMedia?.mediaType}
                             />
                             {!resolvedMedia && image?.url && (
-                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover" />
+                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                             )}
                          </div>
                     </div>
                 )}
 
-                <div className={`flex flex-col ${layout === 'horizontal' ? 'w-full md:w-2/3 h-full' : 'w-full'}`}>
+                {/* Main Content Column */}
+                <div className={`flex flex-col flex-grow ${layout === 'horizontal' ? 'flex-1 min-w-0 justify-center' : 'w-full'}`}>
+                    
                     {/* Header */}
-                    <div className={`flex items-start mb-2 ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
-                        <div className={`flex items-center gap-2 md:gap-4 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
-                            {/* Smart Icon Wrapper */}
+                    <div className={`flex items-start ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
+                        <div className={`flex items-center gap-2 md:gap-3 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
                             <div className={`
-                                flex h-7 w-7 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-2xl
+                                flex shrink-0 h-8 w-8 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-[14px]
                                 ${normalizedTheme === 'neon' ? `bg-gradient-to-br ${colors.gradient} text-white` : `bg-white ${colors.text} ring-1 ring-zinc-100 shadow-sm`}
                                 transition-all duration-300 group-hover:scale-110
                             `}>
                                 <SmartIcon
                                     iconRef={smartIcon?.ref || (typeof icon === 'object' ? icon.ref : icon) || 'info'}
                                     type={smartIcon?.type || 'static'}
-                                    className="w-3.5 h-3.5 md:w-6 md:h-6"
+                                    className="w-4 h-4 md:w-5 md:h-5"
                                 />
                             </div>
 
                             <div>
-                                {/* <div className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-0.5">Insight</div> */}
-                                <h3 className={`text-xs md:text-lg font-bold leading-tight ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
+                                <h3 className={`text-xs md:text-[15px] font-bold leading-tight ${normalizedTheme === 'neon' ? 'text-white' : 'text-zinc-900'}`}>
                                     {title}
                                 </h3>
                             </div>
                         </div>
 
-                        {/* Status Dot */}
                         {visual_intent === 'processing' ? (
-                            <div className="flex space-x-0.5 md:space-x-1">
+                            <div className="flex shrink-0 space-x-0.5 md:space-x-1 mt-1">
                                 <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                                 <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                                 <div className="w-0.5 h-0.5 md:w-1.5 md:h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
                             </div>
                         ) : (
-                            <div className={`w-1 h-1 md:w-2 md:h-2 rounded-full ${visual_intent === 'urgent' ? 'bg-red-500 animate-ping' : 'bg-blue-500'}`} />
+                            <div className={`shrink-0 w-1 h-1 md:w-2 md:h-2 rounded-full mt-1 ${visual_intent === 'urgent' ? 'bg-red-500 animate-ping' : 'bg-blue-500'}`} />
                         )}
                     </div>
 
-                    {/* Default/Vertical Media */}
+                    {/* Vertical Media: FORCED 'aspect-video' guarantees identical UI blocks for all cards, regardless of image source */}
                     {layout !== 'horizontal' && (image || resolvedMedia) && (
-                        <div className="mt-2 w-full">
+                        <div className="mt-3 mb-1 w-full rounded-xl md:rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5 relative bg-zinc-100/50 shrink-0 aspect-video">
                             <RichMedia
                                 urls={resolvedMedia?.urls}
                                 query={resolvedMedia?.query || (image ? undefined : title)}
                                 source={resolvedMedia?.source}
-                                aspectRatio={resolvedMedia?.aspectRatio || 'video'}
+                                aspectRatio="video" // <-- Force overrides erratic image sizes
                                 alt={title}
                                 mediaType={resolvedMedia?.mediaType}
                             />
-                            {/* Fallback for old static image if no dynamicMedia exists */}
                             {!resolvedMedia && image?.url && (
-                                <div className="rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 aspect-video w-full">
-                                    <img src={image.url} alt={image.alt} className="w-full h-full object-cover" />
-                                </div>
+                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover" />
                             )}
                         </div>
                     )}
 
-                    {/* Content */}
-                    <div className={`text-sm ${normalizedTheme === 'neon' ? 'text-zinc-300' : 'text-zinc-600'} ${layout === 'horizontal' ? 'mt-1 flex-grow overflow-auto' : ''}`}>
+                    {/* Content Section: flex-grow expands smoothly to bottom border if card is stretched */}
+                    <div className={`text-sm ${normalizedTheme === 'neon' ? 'text-zinc-300' : 'text-zinc-600'} flex-grow ${layout === 'horizontal' ? 'mt-2' : 'mt-2'}`}>
                         {renderContent(value)}
                     </div>
                 </div>
