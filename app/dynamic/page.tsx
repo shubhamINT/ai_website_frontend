@@ -2,6 +2,8 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useLiveKitConnection } from "../hooks/useLiveKitConnection";
@@ -60,19 +62,38 @@ export default function DynamicPage() {
         <ThreeBackground />
       </div>
 
+      {/* Floating Logo - Top Left */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, x: -20 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute top-6 left-6 z-50 md:top-8 md:left-8"
+      >
+        <Link 
+          href="/landing" 
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.05] backdrop-blur-xl transition-all hover:scale-110 hover:shadow-[0_15px_45px_rgba(0,0,0,0.08)] active:scale-95 md:h-16 md:w-16"
+        >
+          <Image
+            src="/int-logo.svg"
+            alt="Logo"
+            width={40}
+            height={40}
+            className="h-auto w-8 object-contain md:w-11"
+          />
+        </Link>
+      </motion.div>
+
       {/* Main Container */}
       <div className="relative z-10 flex h-[100dvh] w-full flex-col p-3 pt-6 md:p-6 lg:p-8">
 
         {/* Navigation / Header */}
-        <header className="mb-4 flex items-center justify-between sm:mb-6">
-          <div className="flex items-center gap-2">
-            <Link href="/landing" className="group flex items-center gap-2 rounded-full bg-zinc-100 py-2 pl-3 pr-4 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 sm:text-sm">
-              <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Link>
-          </div>
+        <header className="mb-4 flex items-center justify-end sm:mb-6">
+          <Link href="/landing" className="group flex items-center gap-2 rounded-full bg-zinc-100/80 py-2 pl-3 pr-4 text-xs font-medium text-zinc-600 backdrop-blur-sm transition-colors hover:bg-zinc-200 hover:text-zinc-900 sm:text-sm">
+            <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </Link>
         </header>
 
         <main className="flex flex-1 items-center justify-center">
