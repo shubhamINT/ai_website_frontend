@@ -169,6 +169,34 @@ export function useAgentMessages() {
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
+                else if (topic === 'ui.location_request' || data.type === 'location_request') {
+                    const id = `location-req-${Date.now()}`;
+                    console.log('--- LOCATION REQUEST (INCOMING) ---', data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'location_request',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            locationRequestData: {
+                                reason: data.reason || undefined,
+                            }
+                        });
+                        return next;
+                    });
+
+                    // Safety net: auto-dismiss after 30s in case geolocation never resolves
+                    setTimeout(() => {
+                        updateMessages((prev) => {
+                            const next = new Map(prev);
+                            next.delete(id);
+                            return next;
+                        });
+                    }, 30000);
+                }
                 else if (topic === 'ui.contact_form' || data.type === 'contact_form' || data.type === 'contact_form_submit') {
                     const isSubmit = data.type === 'contact_form_submit';
                     const msgType = isSubmit ? 'contact_form_submit' : 'contact_form';

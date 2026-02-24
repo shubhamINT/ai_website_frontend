@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteraction';
+import { useLocalParticipant } from '@livekit/components-react';
 import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
 import { ContactForm } from './ContactForm';
@@ -138,8 +139,14 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     }, [messages]);
 
     const latestVisualMessage = useMemo(() => {
+        // location_request is intentionally excluded — it's handled silently via useEffect
         const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form' || m.type === 'contact_form_submit');
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
+    }, [messages]);
+
+    const locationRequestMessage = useMemo(() => {
+        const req = messages.filter(m => m.type === 'location_request');
+        return req.length > 0 ? req[req.length - 1] : null;
     }, [messages]);
 
     const contactFormMessage = useMemo(() => {
@@ -156,11 +163,59 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         return null;
     }, [latestVisualMessage]);
 
+    const { localParticipant } = useLocalParticipant();
+
     useEffect(() => {
         if (activeTrack?.publication?.track && 'setVolume' in activeTrack.publication.track) {
             (activeTrack.publication.track as any).setVolume(isAgentMuted ? 0 : 1);
         }
     }, [isAgentMuted, activeTrack]);
+
+    // ─── Location Request Handler ────────────────────────────────────────────
+    useEffect(() => {
+        if (!locationRequestMessage || !localParticipant) return;
+
+        const messageId = locationRequestMessage.id;
+        console.log('--- GEOLOCATION: Requesting user location ---', { messageId });
+
+        const publishLocation = (payload: object) => {
+            const encoded = new TextEncoder().encode(JSON.stringify(payload));
+            localParticipant.publishData(encoded, { topic: 'user.location' });
+            console.log('--- GEOLOCATION: Sent to backend ---', payload);
+        };
+
+        if (!navigator.geolocation) {
+            // Browser doesn't support geolocation at all
+            publishLocation({ status: 'unsupported' });
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                publishLocation({
+                    status: 'success',
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                });
+            },
+            (err) => {
+                // User denied or timed out
+                console.warn('--- GEOLOCATION: Error ---', err.message);
+                publishLocation({
+                    status: 'denied',
+                    error: err.message,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,      // 10s before giving up
+                maximumAge: 60000,   // Accept cached position up to 1 min old
+            }
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationRequestMessage?.id]); // Only re-fire when a NEW location request arrives
+    // ────────────────────────────────────────────────────────────────────────
 
     const handleSend = () => {
         if (!inputText.trim()) return;

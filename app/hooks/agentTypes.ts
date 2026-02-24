@@ -45,10 +45,14 @@ export interface ContactFormData {
     contact_details?: string;
 }
 
+export interface LocationRequestData {
+    reason?: string; // e.g. "finding nearby offices" — shown to the user
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request';
     text?: string;
     cardData?: {
         title: string;
@@ -57,6 +61,7 @@ export interface ChatMessage {
         card_index?: number;
     } & FlashcardStyle;
     contactFormData?: ContactFormData;
+    locationRequestData?: LocationRequestData;
     isInterim?: boolean;
     timestamp: number;
 }
