@@ -111,12 +111,12 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
                         </div>
 
                         {/* Interactive footer line */}
-                        <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                        {/* <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 group-hover:text-zinc-600 transition-colors">
                             Click to ask
                             <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
-                        </div>
+                        </div> */}
                     </motion.button>
                 ))}
             </div>
