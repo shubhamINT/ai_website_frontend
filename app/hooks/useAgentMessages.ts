@@ -36,17 +36,28 @@ export function useAgentMessages() {
 
             updateMessages((prev) => {
                 const next = new Map(prev);
+                let changed = false;
+
                 for (const segment of segments) {
+                    const cleanText = segment.text.replace(/\[.*?\]|<.*?>/g, '').trim();
+                    if (!cleanText && segment.final) continue; // Skip empty final segments
+
+                    const existing = next.get(segment.id);
+                    if (existing && existing.text === cleanText && existing.isInterim === !segment.final) {
+                        continue; // No change, skip update
+                    }
+
                     next.set(segment.id, {
                         id: segment.id,
                         type: 'text',
-                        text: segment.text.replace(/\[.*?\]|<.*?>/g, '').trim(),
+                        text: cleanText,
                         sender: senderIsAgent ? "agent" : "user",
                         isInterim: !segment.final,
                         timestamp: segment.firstReceivedTime,
                     });
+                    changed = true;
                 }
-                return next;
+                return changed ? next : prev;
             });
         };
 
@@ -168,6 +179,27 @@ export function useAgentMessages() {
                     }
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
+                }
+                else if (data.type === 'map.polyline') {
+                    const id = `map-polyline-${Date.now()}`;
+                    console.log('--- MAP POLYLINE (INCOMING) ---', data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'map_polyline',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            mapPolylineData: {
+                                polyline: data.data?.polyline || data.polyline,
+                                origin: data.data?.origin || data.origin,
+                                destination: data.data?.destination || data.destination,
+                            }
+                        });
+                        return next;
+                    });
                 }
                 else if (topic === 'ui.location_request' || data.type === 'location_request') {
                     const id = `location-req-${Date.now()}`;

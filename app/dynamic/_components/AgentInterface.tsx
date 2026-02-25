@@ -8,6 +8,12 @@ import { ContactForm } from './ContactForm';
 import { ContactFormSubmit } from './ContactFormSubmit';
 import { StarterScreen } from './StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
+import dynamic from 'next/dynamic';
+
+const MapDisplay = dynamic(() => import('./MapDisplay').then(mod => mod.MapDisplay), { 
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
+});
 
 interface AgentInterfaceProps {
     onDisconnect: () => void;
@@ -166,7 +172,12 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     const latestVisualMessage = useMemo(() => {
         // location_request is intentionally excluded — it's handled silently via useEffect
-        const visualMsgs = messages.filter(m => m.type === 'flashcard' || m.type === 'contact_form' || m.type === 'contact_form_submit');
+        const visualMsgs = messages.filter(m => 
+            m.type === 'flashcard' || 
+            m.type === 'contact_form' || 
+            m.type === 'contact_form_submit' ||
+            m.type === 'map_polyline'
+        );
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
 
@@ -184,6 +195,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     const contactFormSubmitMessage = useMemo(() => {
         if (latestVisualMessage?.type === 'contact_form_submit') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const mapPolylineMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'map_polyline') {
             return latestVisualMessage;
         }
         return null;
@@ -272,6 +290,15 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 ) : latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactForm key={contactFormMessage.id} data={contactFormMessage.contactFormData} />
+                    </div>
+                ) : latestVisualMessage?.type === 'map_polyline' && mapPolylineMessage?.mapPolylineData ? (
+                    <div className="flex w-full max-w-4xl justify-center">
+                        <MapDisplay 
+                            key={mapPolylineMessage.id} 
+                            polyline={mapPolylineMessage.mapPolylineData.polyline}
+                            origin={mapPolylineMessage.mapPolylineData.origin}
+                            destination={mapPolylineMessage.mapPolylineData.destination}
+                        />
                     </div>
                 ) : flashcards.length > 0 ? (
                     <CardDisplay cards={flashcards} />

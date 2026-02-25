@@ -49,10 +49,16 @@ export interface LocationRequestData {
     reason?: string; // e.g. "finding nearby offices" — shown to the user
 }
 
+export interface MapPolylineData {
+    polyline: string;
+    origin?: string;
+    destination?: string;
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline';
     text?: string;
     cardData?: {
         title: string;
@@ -62,6 +68,7 @@ export interface ChatMessage {
     } & FlashcardStyle;
     contactFormData?: ContactFormData;
     locationRequestData?: LocationRequestData;
+    mapPolylineData?: MapPolylineData;
     isInterim?: boolean;
     timestamp: number;
 }
