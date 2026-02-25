@@ -13,6 +13,25 @@ const DefaultIcon = L.icon({
     iconSize: [25, 41],
     iconAnchor: [12, 41],
 });
+
+const StartIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const EndIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
 L.Marker.prototype.options.icon = DefaultIcon;
 
 
@@ -149,13 +168,13 @@ export const MapDisplay = React.memo(({ polyline, origin, destination, travelMod
                     }} 
                 />
 
-                <Marker position={startPoint}>
+                <Marker position={startPoint} icon={StartIcon}>
                     <Popup>
                         <div className="text-xs font-semibold">{origin || "Current Location"}</div>
                     </Popup>
                 </Marker>
 
-                <Marker position={endPoint}>
+                <Marker position={endPoint} icon={EndIcon}>
                     <Popup>
                         <div className="text-xs font-semibold">{destination || "Destination"}</div>
                     </Popup>
