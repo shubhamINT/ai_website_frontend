@@ -298,6 +298,9 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             polyline={mapPolylineMessage.mapPolylineData.polyline}
                             origin={mapPolylineMessage.mapPolylineData.origin}
                             destination={mapPolylineMessage.mapPolylineData.destination}
+                            travelMode={mapPolylineMessage.mapPolylineData.travelMode}
+                            distance={mapPolylineMessage.mapPolylineData.distance}
+                            duration={mapPolylineMessage.mapPolylineData.duration}
                         />
                     </div>
                 ) : flashcards.length > 0 ? (

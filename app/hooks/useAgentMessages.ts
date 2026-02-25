@@ -181,8 +181,11 @@ export function useAgentMessages() {
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
                 else if (data.type === 'map.polyline') {
-                    const id = `map-polyline-${Date.now()}`;
-                    console.log('--- MAP POLYLINE (INCOMING) ---', data);
+                    const id = `map-polyline-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    console.log('--- MAP POLYLINE (EXTRACTING) ---', {
+                        hasDataNested: !!data.data,
+                        keys: data.data ? Object.keys(data.data) : Object.keys(data)
+                    });
 
                     updateMessages((prev) => {
                         const next = new Map(prev);
@@ -196,12 +199,41 @@ export function useAgentMessages() {
                                 polyline: data.data?.polyline || data.polyline,
                                 origin: data.data?.origin || data.origin,
                                 destination: data.data?.destination || data.destination,
+                                travelMode: (data.data?.travelMode || data.travelMode) as any,
+                                distance: data.data?.distance || data.distance,
+                                duration: data.data?.duration || data.duration,
                             }
                         });
                         return next;
                     });
                 }
                 else if (topic === 'ui.location_request' || data.type === 'location_request') {
+                    // Check if this location request actually contains polyline data (some backends wrap them)
+                    if (data.data?.polyline || data.polyline || data.type === 'map.polyline' || data.data?.type === 'map.polyline') {
+                        const id = `map-polyline-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                        console.log('--- MAP POLYLINE (DETECTED INSIDE LOCATION REQ) ---', data);
+                        updateMessages((prev) => {
+                            const next = new Map(prev);
+                            next.set(id, {
+                                id,
+                                type: 'map_polyline',
+                                sender: 'agent',
+                                timestamp: Date.now(),
+                                isInterim: false,
+                                mapPolylineData: {
+                                    polyline: data.data?.polyline || data.polyline,
+                                    origin: data.data?.origin || data.origin,
+                                    destination: data.data?.destination || data.destination,
+                                    travelMode: (data.data?.travelMode || data.travelMode) as any,
+                                    distance: data.data?.distance || data.distance,
+                                    duration: data.data?.duration || data.duration,
+                                }
+                            });
+                            return next;
+                        });
+                        return;
+                    }
+
                     const id = `location-req-${Date.now()}`;
                     console.log('--- LOCATION REQUEST (INCOMING) ---', data);
 

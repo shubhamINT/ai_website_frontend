@@ -53,6 +53,9 @@ export interface MapPolylineData {
     polyline: string;
     origin?: string;
     destination?: string;
+    travelMode?: 'driving' | 'walking' | 'bicycling' | 'transit';
+    distance?: string;
+    duration?: string;
 }
 
 export interface ChatMessage {

@@ -15,73 +15,97 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+
+const decodePolyline = (str: string) => {
+    let index = 0;
+    let lat = 0;
+    let lng = 0;
+    const coordinates = [];
+    let shift = 0;
+    let result = 0;
+    let byte = null;
+    let latitude_change, longitude_change;
+
+    while (index < str.length) {
+        byte = null;
+        shift = 0;
+        result = 0;
+
+        do {
+            byte = str.charCodeAt(index++) - 63;
+            result |= (byte & 0x1f) << shift;
+            shift += 5;
+        } while (byte >= 0x20);
+
+        latitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+
+        shift = 0;
+        result = 0;
+
+        do {
+            byte = str.charCodeAt(index++) - 63;
+            result |= (byte & 0x1f) << shift;
+            shift += 5;
+        } while (byte >= 0x20);
+
+        longitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+
+        lat += latitude_change;
+        lng += longitude_change;
+
+        coordinates.push([lat / 1e5, lng / 1e5] as [number, number]);
+    }
+
+    return coordinates;
+};
+
+const ChangeView = ({ bounds }: { bounds: L.LatLngBounds }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (bounds) {
+            map.fitBounds(bounds, { padding: [50, 50], animate: true });
+        }
+    }, [bounds, map]);
+    return null;
+};
+
+
+
 interface MapDisplayProps {
     polyline: string;
     origin?: string;
     destination?: string;
+    travelMode?: 'driving' | 'walking' | 'bicycling' | 'transit';
+    distance?: string;
+    duration?: string;
 }
 
-/**
- * Decodes a Google Maps encoded polyline string into an array of [lat, lng] coordinates.
- */
-function decodePolyline(encoded: string): [number, number][] {
-    if (!encoded) return [];
-    const poly: [number, number][] = [];
-    let index = 0, len = encoded.length;
-    let lat = 0, lng = 0;
-
-    while (index < len) {
-        let b, shift = 0, result = 0;
-        do {
-            b = encoded.charCodeAt(index++) - 63;
-            result |= (b & 0x1f) << shift;
-            shift += 5;
-        } while (b >= 0x20);
-        const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-        lat += dlat;
-
-        shift = 0;
-        result = 0;
-        do {
-            b = encoded.charCodeAt(index++) - 63;
-            result |= (b & 0x1f) << shift;
-            shift += 5;
-        } while (b >= 0x20);
-        const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-        lng += dlng;
-
-        poly.push([lat / 1e5, lng / 1e5]);
+const TravelModeIcon = ({ mode }: { mode?: string }) => {
+    switch (mode) {
+        case 'walking':
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M13.5 1.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM6.75 6a.75.75 0 0 0-.75.75v6.75a.75.75 0 0 0 1.5 0v-4.39l1.583 1.583a.75.75 0 0 0 1.06 0l2.25-2.25a.75.75 0 0 0 0-1.06L9.64 4.879A2.25 2.25 0 0 0 8.05 4.25H6.75ZM15 7.5a.75.75 0 0 1 .75-.75h.75a2.25 2.25 0 0 1 2.25 2.25v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 0-.75-.75h-.75A.75.75 0 0 1 15 7.5ZM5.25 15.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM13.5 18a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5h-3A.75.75 0 0 1 13.5 18ZM6.75 18.75a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H7.5a.75.75 0 0 1-.75-.75Z" />
+                </svg>
+            );
+        case 'driving':
+        default:
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <path d="M11.25 4.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM18.664 6.352a.75.75 0 0 1 .536.216l.3.3a.75.75 0 0 1-1.06 1.06l-.3-.3a.75.75 0 0 1 .524-1.276ZM4.8 6.352a.75.75 0 0 1 .524 1.276l-.3.3a.75.75 0 0 1-1.06-1.06l.3-.3a.75.75 0 0 1 .536-.216ZM12 7.5a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+                    <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0Zm9-7.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Z" clipRule="evenodd" />
+                </svg>
+            );
     }
-    return poly;
 }
 
-// Component to handle map bounds and auto-zooming
-function ChangeView({ bounds }: { bounds: L.LatLngBoundsExpression }) {
-    const map = useMap();
-    useEffect(() => {
-        if (bounds) {
-            map.fitBounds(bounds, { padding: [40, 40], animate: true });
-        }
-    }, [bounds, map]);
-    return null;
-}
-
-export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisplayProps) => {
-    console.log('--- MAPDISPLAY: Rendering ---', { origin, destination, polylineLength: polyline?.length });
-    const positions = useMemo(() => {
-        const decoded = decodePolyline(polyline);
-        console.log('--- MAPDISPLAY: Polylines decoded ---', { count: decoded.length });
-        return decoded;
-    }, [polyline]);
+export const MapDisplay = React.memo(({ polyline, origin, destination, travelMode, distance, duration }: MapDisplayProps) => {
+    const positions = useMemo(() => decodePolyline(polyline), [polyline]);
     
     const bounds = useMemo(() => {
         if (positions.length === 0) return null;
         return L.latLngBounds(positions);
     }, [positions]);
-
-    useEffect(() => {
-        console.log('--- MAPDISPLAY: Component mounted ---');
-    }, []);
 
     if (positions.length === 0) {
         return (
@@ -98,7 +122,7 @@ export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisp
         <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="group relative h-[350px] w-full overflow-hidden rounded-[32px] bg-white/40 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)] md:h-[450px]"
+            className="group relative h-[400px] w-full overflow-hidden rounded-[32px] bg-white/40 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)] md:h-[500px]"
         >
             <div className="absolute inset-0 z-10 pointer-events-none rounded-[30px] border-[6px] border-white/50 shadow-inner"></div>
             
@@ -109,7 +133,6 @@ export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisp
                 zoomControl={false}
                 scrollWheelZoom={false}
             >
-                {/* Clean, light-themed map tiles */}
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -119,7 +142,7 @@ export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisp
                     positions={positions} 
                     pathOptions={{ 
                         color: '#2563eb', 
-                        weight: 4, 
+                        weight: 5, 
                         opacity: 0.8,
                         lineCap: 'round',
                         lineJoin: 'round'
@@ -128,7 +151,7 @@ export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisp
 
                 <Marker position={startPoint}>
                     <Popup>
-                        <div className="text-xs font-semibold">{origin || "Start Point"}</div>
+                        <div className="text-xs font-semibold">{origin || "Current Location"}</div>
                     </Popup>
                 </Marker>
 
@@ -142,33 +165,59 @@ export const MapDisplay = React.memo(({ polyline, origin, destination }: MapDisp
             </MapContainer>
 
             {/* Premium Overlay Elements */}
-            <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2">
-                {(origin || destination) && (
-                    <div className="flex items-center gap-3 rounded-2xl bg-white/90 p-3 shadow-lg ring-1 ring-black/5 backdrop-blur-md">
-                        <div className="flex flex-col gap-1 flex-1">
-                            {origin && (
-                                <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                                    <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Origin</span>
-                                    <span className="text-xs font-semibold text-zinc-900 truncate">{origin}</span>
-                                </div>
-                            )}
-                            {destination && (
-                                <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                                    <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Destination</span>
-                                    <span className="text-xs font-semibold text-zinc-900 truncate">{destination}</span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="h-8 w-px bg-zinc-200"></div>
-                        <div className="px-1 text-blue-600">
-                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
-                                <path fillRule="evenodd" d="M8.161 2.58a.75.75 0 0 1 .753-.018l9 5.25a.75.75 0 0 1 0 1.288l-9 5.25a.75.75 0 0 1-1.127-.644V2.984a.75.75 0 0 1 .374-.648ZM21 12.75a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5H21Z" clipRule="evenodd" />
-                             </svg>
-                        </div>
+            <div className="absolute top-4 left-4 z-[1000] flex gap-2">
+                <div className="flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-1.5 text-white shadow-lg backdrop-blur-md">
+                    <TravelModeIcon mode={travelMode} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{travelMode || 'driving'}</span>
+                </div>
+                {(distance || duration) && (
+                    <div className="flex items-center gap-3 rounded-xl bg-white/90 px-3 py-1.5 text-zinc-900 shadow-lg ring-1 ring-black/5 backdrop-blur-md">
+                        {distance && (
+                            <div className="flex flex-col">
+                                <span className="text-[8px] font-medium text-zinc-500 uppercase">Distance</span>
+                                <span className="text-xs font-bold">{distance}</span>
+                            </div>
+                        )}
+                        {distance && duration && <div className="h-4 w-px bg-zinc-200"></div>}
+                        {duration && (
+                            <div className="flex flex-col">
+                                <span className="text-[8px] font-medium text-zinc-500 uppercase">Time</span>
+                                <span className="text-xs font-bold text-blue-600">{duration}</span>
+                            </div>
+                        )}
                     </div>
                 )}
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 z-[1000]">
+                <div className="flex items-center gap-3 rounded-2xl bg-white/90 p-4 shadow-xl ring-1 ring-black/5 backdrop-blur-md">
+                    <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-center">
+                                <div className="h-2.5 w-2.5 rounded-full border-2 border-blue-500 bg-white"></div>
+                                <div className="h-4 w-0.5 border-l border-dashed border-zinc-300"></div>
+                                <div className="h-2.5 w-2.5 rounded-sm bg-red-500"></div>
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-tighter">Your Location</span>
+                                    <span className="text-xs font-semibold text-zinc-900 truncate max-w-[150px]">{origin || "Current Position"}</span>
+                                </div>
+                                <div className="h-px bg-zinc-100"></div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-tighter">Destination</span>
+                                    <span className="text-xs font-semibold text-zinc-900 truncate max-w-[200px]">{destination || "Calculating..."}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-lg transition-transform hover:scale-105 active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </motion.div>
     );
