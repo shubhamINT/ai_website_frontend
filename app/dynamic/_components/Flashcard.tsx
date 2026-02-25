@@ -79,7 +79,8 @@ export const Flashcard = React.memo(({
 
     const normalizedSize = (size === 'tiny' || size === 'extra-small') ? 'tiny' :
         (size === 'sm' || size === 'small') ? 'small' :
-            (size === 'lg' || size === 'large') ? 'large' : 'medium';
+            (size === 'lg' || size === 'large') ? 'large' :
+                (size === 'bento') ? 'bento' : 'medium';
     const normalizedTheme = theme || (visual_intent === 'cyberpunk' ? 'neon' : 'glass');
 
     const themeClasses = {
@@ -89,11 +90,12 @@ export const Flashcard = React.memo(({
         neon: `bg-zinc-900 text-white shadow-[0_0_30px_rgba(0,0,0,0.5)] ring-1 ring-${detectedColorName}-500/50`
     };
 
-    const sizeClasses = {
+    const sizeClasses: Record<string, string> = {
         tiny: 'p-1.5 gap-1.5 w-full max-w-[150px] md:p-2.5 md:max-w-[200px]',
         small: 'p-2 gap-2 w-full max-w-[180px] md:p-3 md:max-w-[240px]',
         medium: 'p-2.5 gap-2.5 w-full max-w-[240px] md:p-6 md:gap-5 md:max-w-[400px]',
-        large: 'p-4 w-full max-w-4xl md:p-8'
+        large: 'p-4 w-full max-w-4xl md:p-8',
+        bento: 'p-4 md:p-6 w-full h-full'
     };
 
     const variants = {
@@ -160,19 +162,19 @@ export const Flashcard = React.memo(({
 
             {/* Inner Content flex-grow ensures space is beautifully utilized if card stretches */}
             <div className={`relative z-10 flex flex-col flex-grow
-                ${layout === 'horizontal' ? 'md:flex-row gap-4 md:gap-5 md:items-center' : 'gap-3 md:gap-4'} 
+                ${layout === 'horizontal' ? 'md:flex-row gap-4 md:gap-6 md:items-center p-2' : 'gap-3 md:gap-4'} 
                 ${layout === 'centered' ? 'justify-center text-center items-center' : ''}
             `}>
 
-                {/* Horizontal Layout Image: Keeps its perfect 4:5 bounding box and stays centered vertically */}
+                {/* Horizontal Layout Image: Standardized to slightly wider card ratio instead of cramped portrait */}
                 {layout === 'horizontal' && (image || resolvedMedia) && (
-                    <div className="w-full sm:w-[130px] md:w-[150px] shrink-0 mx-auto md:my-auto">
-                         <div className="rounded-xl md:rounded-2xl overflow-hidden relative shadow-md ring-1 ring-black/5 bg-zinc-100 aspect-[4/5] w-full">
+                    <div className="w-full sm:w-[180px] md:w-[220px] shrink-0 mx-auto md:my-auto">
+                         <div className="rounded-xl md:rounded-2xl overflow-hidden relative shadow-md ring-1 ring-black/5 bg-zinc-100/50 aspect-video w-full">
                             <RichMedia
                                 urls={resolvedMedia?.urls}
                                 query={resolvedMedia?.query || (image ? undefined : title)}
                                 source={resolvedMedia?.source}
-                                aspectRatio={resolvedMedia?.aspectRatio || 'portrait'} 
+                                aspectRatio="video" 
                                 alt={title}
                                 mediaType={resolvedMedia?.mediaType}
                             />
@@ -231,7 +233,7 @@ export const Flashcard = React.memo(({
                                 mediaType={resolvedMedia?.mediaType}
                             />
                             {!resolvedMedia && image?.url && (
-                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-cover" />
+                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-contain p-1" />
                             )}
                         </div>
                     )}

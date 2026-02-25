@@ -5,7 +5,7 @@ export interface FlashcardStyle {
     accentColor?: string;
     icon?: string | { type: 'static'; ref: string; fallback?: string };
     theme?: 'glass' | 'solid' | 'gradient' | 'neon' | 'highlight' | 'info' | 'light';
-    size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg';
+    size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg' | 'bento';
     layout?: 'default' | 'horizontal' | 'centered' | 'media-top';
     image?: {
         url: string;

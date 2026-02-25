@@ -61,39 +61,65 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     );
     if (validCards.length === 0) return null;
 
-    const cardSize = useMemo(() => {
-        const count = validCards.length;
-        if (count <= 4) return 'medium'; 
-        if (count <= 6) return 'small';  
-        return 'tiny';                   
-    }, [validCards.length]);
+    const count = validCards.length;
+    
+    let gridClasses = "grid gap-4 md:gap-6 w-full mx-auto ";
+    if (count === 1) {
+        gridClasses += "grid-cols-1 max-w-2xl";
+    } else if (count === 2) {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 max-w-5xl";
+    } else if (count === 3) {
+        gridClasses += "grid-cols-1 sm:grid-cols-3 max-w-7xl";
+    } else if (count === 4) {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl"; // 2x2 grid
+    } else {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-[95vw] xl:max-w-screen-2xl";
+    }
 
     return (
-        <div className="relative flex w-full max-w-[95vw] xl:max-w-screen-2xl flex-col items-center">
-            {/* items-stretch guarantees absolute symmetrical heights across the row */}
+        <div className="relative flex w-full flex-col items-center">
             <motion.div
                 layout
-                className="relative z-10 flex w-full flex-wrap justify-center items-stretch gap-4 px-4 md:px-8 md:gap-6 xl:gap-10"
+                className={`relative z-10 px-4 md:px-8 ${gridClasses}`}
             >
                 <AnimatePresence mode="popLayout">
-                    {validCards.map((card) => (
-                        <motion.div
-                            layout
-                            key={card.id}
-                            initial={{ opacity: 0, scale: 0.8, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            // The wrapper flexibly adopts the stretched height
-                            className="flex w-full sm:w-auto"
-                        >
-                            <Flashcard {...card.cardData} size={cardSize} />
-                        </motion.div>
-                    ))}
+                    {validCards.map((card, idx) => {
+                        let itemClass = "flex w-full h-full";
+                        
+                        // Determine internal Flashcard layout based on grid scenario
+                        let layoutProp: 'default' | 'horizontal' = 'default';
+                        if (count === 1) {
+                            layoutProp = 'horizontal'; 
+                        }
+
+                        // Smoother liquid animation flow without hardcoded delays
+                        return (
+                            <motion.div
+                                layout
+                                key={card.id}
+                                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                                animate={{ 
+                                    opacity: 1, y: 0, scale: 1,
+                                    transition: {
+                                        type: "spring", 
+                                        stiffness: 160, 
+                                        damping: 20, 
+                                        mass: 0.8
+                                    }
+                                }}
+                                exit={{ opacity: 0, scale: 0.85, y: -20, transition: { duration: 0.3, ease: "easeOut" } }}
+                                // Fluidly reposition remaining items when grid changes
+                                transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                                className={itemClass}
+                            >
+                                <Flashcard {...card.cardData} size="bento" layout={layoutProp} />
+                            </motion.div>
+                        );
+                    })}
                 </AnimatePresence>
             </motion.div>
 
-            {validCards.length > 3 && (
+            {validCards.length > 4 && (
                 <div className="mt-4 md:mt-6 flex items-center gap-2 rounded-full bg-white/40 px-3 py-1.5 md:px-4 md:py-2 backdrop-blur-xl ring-1 ring-black/5 shadow-lg">
                     <div className="flex gap-1 md:gap-1.5">
                         {validCards.slice(-5).map((_, idx) => (
