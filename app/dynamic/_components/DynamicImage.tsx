@@ -87,7 +87,7 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                     alt={alt}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain transition-transform duration-700 hover:scale-105"
+                    className="object-contain transition-all duration-700"
                     onLoad={() => setIsLoading(false)}
                     onError={() => {
                         setError(true);

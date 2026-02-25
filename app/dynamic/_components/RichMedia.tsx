@@ -110,7 +110,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
             <img
                 src={url}
                 alt={`${alt} ${index + 1}`}
-                className={`${commonClasses} group-hover:scale-105`}
+                className={commonClasses}
                 onLoad={() => setIsLoading(false)}
                 onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://placehold.co/800x600?text=${encodeURIComponent(alt || 'Asset')}`;
@@ -127,7 +127,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         portrait: 'aspect-[3/4]'
     };
 
-    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.8rem] group border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] bg-zinc-100/30 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(0,0,0,0.18)] ${ratioMap[aspectRatio]}`;
+    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.8rem] group bg-zinc-50/30 transition-all duration-500 ${ratioMap[aspectRatio]}`;
     const autoRatioFallback = aspectRatio === 'auto' ? 'min-h-[200px]' : '';
 
     // Priority 1: Direct URLs
@@ -222,8 +222,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                     )}
 
                     {/* Ambient Overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[1.5rem] pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
                 </div>
             </div>
         );

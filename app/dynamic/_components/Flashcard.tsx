@@ -150,7 +150,6 @@ export const Flashcard = React.memo(({
             animate="visible"
             exit="exit"
             variants={selectedVariant as any}
-            // `h-full flex flex-col w-full` allows the card to stretch uniformly with its siblings
             className={`
                 relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem]
                 ${themeClasses[normalizedTheme as keyof typeof themeClasses]} 
@@ -169,7 +168,7 @@ export const Flashcard = React.memo(({
                 {/* Horizontal Layout Image: Standardized to slightly wider card ratio instead of cramped portrait */}
                 {layout === 'horizontal' && (image || resolvedMedia) && (
                     <div className="w-full sm:w-[180px] md:w-[220px] shrink-0 mx-auto md:my-auto">
-                         <div className={`rounded-xl md:rounded-[1.5rem] overflow-hidden relative shadow-[0_15px_35px_rgba(0,0,0,0.1)] border border-white/40 bg-zinc-50/30 w-full transition-all duration-500 hover:scale-[1.03]
+                         <div className={`rounded-xl md:rounded-[1.5rem] overflow-hidden relative w-full h-full p-2
                             ${resolvedMedia?.aspectRatio === 'portrait' ? 'aspect-[3/4]' : 'aspect-video'}
                          `}>
                             <RichMedia
@@ -225,7 +224,7 @@ export const Flashcard = React.memo(({
 
                     {/* Vertical Media: DYNAMIC Aspect Ratio ensures 'Full Size' visibility without cropping */}
                     {layout !== 'horizontal' && (image || resolvedMedia) && (
-                        <div className={`mt-3 mb-1 w-full rounded-xl md:rounded-[1.8rem] overflow-hidden shadow-[0_15px_35px_rgba(0,0,0,0.1)] border border-white/40 relative bg-zinc-50/50 shrink-0 transition-all duration-500 hover:scale-[1.01]
+                        <div className={`mt-3 mb-1 w-full rounded-xl md:rounded-[1.8rem] overflow-hidden relative shrink-0 p-3
                             ${resolvedMedia?.aspectRatio === 'portrait' ? 'aspect-[3/4]' : 
                               resolvedMedia?.aspectRatio === 'square' ? 'aspect-square' : 
                               'aspect-video'}
