@@ -15,6 +15,11 @@ const MapDisplay = dynamic(() => import('./MapDisplay').then(mod => mod.MapDispl
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
 });
 
+const GlobalPresenceMap = dynamic(() => import('./GlobalPresenceMap').then(mod => mod.GlobalPresenceMap), { 
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-900/50 backdrop-blur-md md:h-[450px]" />
+});
+
 interface AgentInterfaceProps {
     onDisconnect: () => void;
 }
@@ -176,7 +181,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             m.type === 'flashcard' || 
             m.type === 'contact_form' || 
             m.type === 'contact_form_submit' ||
-            m.type === 'map_polyline'
+            m.type === 'map_polyline' ||
+            m.type === 'global_presence'
         );
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
@@ -202,6 +208,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     const mapPolylineMessage = useMemo(() => {
         if (latestVisualMessage?.type === 'map_polyline') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const globalPresenceMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'global_presence') {
             return latestVisualMessage;
         }
         return null;
@@ -301,6 +314,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             travelMode={mapPolylineMessage.mapPolylineData.travelMode}
                             distance={mapPolylineMessage.mapPolylineData.distance}
                             duration={mapPolylineMessage.mapPolylineData.duration}
+                        />
+                    </div>
+                ) : latestVisualMessage?.type === 'global_presence' && globalPresenceMessage?.globalPresenceData ? (
+                    <div className="flex w-full max-w-5xl justify-center">
+                        <GlobalPresenceMap 
+                            key={globalPresenceMessage.id}
+                            data={globalPresenceMessage.globalPresenceData}
                         />
                     </div>
                 ) : flashcards.length > 0 ? (

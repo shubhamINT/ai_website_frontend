@@ -306,6 +306,26 @@ export function useAgentMessages() {
                         }, 2000);
                     }
                 }
+                else if (topic === 'ui.global_presense' || data.type === 'global_presence') {
+                    const id = `global-presence-${Date.now()}`;
+                    console.log('--- GLOBAL PRESENCE (INCOMING) ---', data);
+                    
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'global_presence',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            globalPresenceData: {
+                                regions: data.data?.regions || data.regions || {},
+                                headquarters: data.data?.headquarters || data.headquarters || {},
+                            }
+                        });
+                        return next;
+                    });
+                }
             } catch (e) { /* ignore non-json or noise */ }
         };
 

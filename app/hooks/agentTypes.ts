@@ -58,10 +58,15 @@ export interface MapPolylineData {
     duration?: string;
 }
 
+export interface GlobalPresenceData {
+    regions: Record<string, string>;
+    headquarters: Record<string, string>;
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence';
     text?: string;
     cardData?: {
         title: string;
@@ -72,6 +77,7 @@ export interface ChatMessage {
     contactFormData?: ContactFormData;
     locationRequestData?: LocationRequestData;
     mapPolylineData?: MapPolylineData;
+    globalPresenceData?: GlobalPresenceData;
     isInterim?: boolean;
     timestamp: number;
 }
