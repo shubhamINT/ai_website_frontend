@@ -66,7 +66,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     };
 
     const renderSingleMedia = (url: string, type: MediaType, index: number) => {
-        const commonClasses = "h-full w-full object-cover transition-all duration-700";
+        const commonClasses = "h-full w-full object-contain transition-all duration-700";
 
         if (type === 'video') {
             return (
@@ -127,8 +127,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         portrait: 'aspect-[3/4]'
     };
 
-    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.5rem] group ring-1 ring-black/5 shadow-inner bg-zinc-100/50 ${ratioMap[aspectRatio]}`;
-    const autoRatioFallback = aspectRatio === 'auto' ? 'aspect-video' : '';
+    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.8rem] group border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] bg-zinc-100/30 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(0,0,0,0.18)] ${ratioMap[aspectRatio]}`;
+    const autoRatioFallback = aspectRatio === 'auto' ? 'min-h-[200px]' : '';
 
     // Priority 1: Direct URLs
     if (safeUrls && safeUrls.length > 0) {

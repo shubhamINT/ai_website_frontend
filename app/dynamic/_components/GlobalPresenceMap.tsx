@@ -4,57 +4,65 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // Fix for Leaflet marker icons in Next.js
 const DefaultIcon = L.icon({
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
+    iconSize:[25, 41],
     iconAnchor: [12, 41],
 });
 
+// Premium HQ Marker (Concentric rings + Core Glow)
 const HQIcon = L.divIcon({
-    html: `<div class="relative">
-        <div class="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-ping opacity-75"></div>
-        <div class="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-    </div>`,
-    className: 'custom-marker',
-    iconSize: [0, 0],
+    html: `
+        <div class="relative flex items-center justify-center w-12 h-12 group">
+            <div class="absolute w-full h-full bg-blue-500/10 rounded-full animate-[pulse_3s_infinite]"></div>
+            <div class="absolute w-2/3 h-2/3 bg-blue-500/20 rounded-full animate-[pulse_2s_infinite]"></div>
+            <div class="absolute w-4 h-4 bg-blue-600 rounded-full border-[3px] border-white shadow-[0_0_15px_rgba(37,99,235,0.6)] z-10 transition-transform group-hover:scale-125"></div>
+            <div class="absolute w-8 h-8 rounded-full border border-blue-400/30 animate-[spin_8s_linear_infinite] border-dashed"></div>
+        </div>
+    `,
+    className: 'custom-marker-hq',
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
 });
 
+// Premium Region Marker (Clean Node)
 const RegionIcon = L.divIcon({
-    html: `<div class="relative">
-        <div class="absolute -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-indigo-500 rounded-full border-2 border-white shadow-md"></div>
-    </div>`,
-    className: 'custom-marker',
-    iconSize: [0, 0],
+    html: `
+        <div class="relative flex items-center justify-center w-8 h-8 group">
+            <div class="absolute w-3 h-3 bg-blue-400 rounded-full border-2 border-white shadow-lg ring-1 ring-blue-100 transition-all group-hover:scale-150 group-hover:bg-blue-500"></div>
+            <div class="absolute w-full h-full bg-blue-400/5 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"></div>
+        </div>
+    `,
+    className: 'custom-marker-region',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
 });
 
-// Fixed Coordinates Mapping for provided addresses
 const COORDINATES_MAP: Record<string, [number, number]> = {
-    "1310 S Vista Ave Ste 28, Boise, Idaho – 83705": [43.5891, -116.2081],
-    "120 Adelaide Street West, Suite 2500, M5H 1T1": [43.6499, -79.3842],
+    "1310 S Vista Ave Ste 28, Boise, Idaho – 83705":[43.5891, -116.2081],
+    "120 Adelaide Street West, Suite 2500, M5H 1T1":[43.6499, -79.3842],
     "13 More London Riverside, London SE1 2RE": [51.5048, -0.0786],
     "BARTYCKA 22B M21A, 00-716 WARSZAWA": [52.2131, 21.0531],
-    "Indus Net Technologies PTE Ltd., 60 Paya Lebar Road, #09-43 Paya Lebar Square – 409051": [1.3182, 103.8931],
-    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091": [22.5726, 88.4339],
-    "4th Floor, Block-2b, ECOSPACE BUSINESS PARK, AA II, Newtown, Chakpachuria, West Bengal 700160": [22.5835, 88.4735],
+    "Indus Net Technologies PTE Ltd., 60 Paya Lebar Road, #09-43 Paya Lebar Square – 409051":[1.3182, 103.8931],
+    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091":[22.5726, 88.4339],
+    "4th Floor, Block-2b, ECOSPACE BUSINESS PARK, AA II, Newtown, Chakpachuria, West Bengal 700160":[22.5835, 88.4735],
 };
 
-const getCoordinates = (address: string): [number, number] | null => {
-    // Exact match or contains check
+const getCoordinates = (address: string):[number, number] | null => {
     for (const [key, coords] of Object.entries(COORDINATES_MAP)) {
         if (address.includes(key) || key.includes(address)) return coords;
     }
-    // Fallback based on country keywords if address not in map
-    if (address.toLowerCase().includes('usa') || address.toLowerCase().includes('boise')) return [43.6150, -116.2023];
-    if (address.toLowerCase().includes('canada')) return [43.6532, -79.3832];
-    if (address.toLowerCase().includes('uk') || address.toLowerCase().includes('london')) return [51.5074, -0.1278];
-    if (address.toLowerCase().includes('poland')) return [52.2297, 21.0122];
-    if (address.toLowerCase().includes('singapore')) return [1.3521, 103.8198];
-    if (address.toLowerCase().includes('india') || address.toLowerCase().includes('kolkata')) return [22.5726, 88.3639];
-    
+    const lower = address.toLowerCase();
+    if (lower.includes('usa') || lower.includes('boise')) return[43.6150, -116.2023];
+    if (lower.includes('canada')) return[43.6532, -79.3832];
+    if (lower.includes('uk') || lower.includes('london')) return [51.5074, -0.1278];
+    if (lower.includes('poland')) return [52.2297, 21.0122];
+    if (lower.includes('singapore')) return[1.3521, 103.8198];
+    if (lower.includes('india') || lower.includes('kolkata')) return [22.5726, 88.3639];
     return null;
 };
 
@@ -66,14 +74,18 @@ interface LocationPoint {
     coords: [number, number];
 }
 
-const ChangeView = ({ positions }: { positions: [number, number][] }) => {
+const ChangeView = ({ positions, isComplete }: { positions: [number, number][], isComplete: boolean }) => {
     const map = useMap();
     useEffect(() => {
-        if (positions.length > 0) {
+        if (isComplete && positions.length > 0) {
             const bounds = L.latLngBounds(positions);
-            map.fitBounds(bounds, { padding: [100, 100], animate: true, duration: 2 });
+            map.flyToBounds(bounds, { 
+                padding: [100, 100], 
+                duration: 3, 
+                easeLinearity: 0.1 
+            });
         }
-    }, [positions, map]);
+    }, [isComplete, positions, map]);
     return null;
 };
 
@@ -86,162 +98,205 @@ export interface GlobalPresenceMapProps {
 
 export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
     const [visiblePoints, setVisiblePoints] = useState<LocationPoint[]>([]);
-    
+
     const allPoints = useMemo(() => {
-        const points: LocationPoint[] = [];
-        
-        // Add Headquarters
+        const points: LocationPoint[] =[];
         Object.entries(data.headquarters).forEach(([country, address], idx) => {
             const coords = getCoordinates(address);
-            if (coords) {
-                points.push({
-                    id: `hq-${idx}-${country}`,
-                    type: 'hq',
-                    address,
-                    label: `${country} (HQ)`,
-                    coords
-                });
-            }
+            if (coords) points.push({ id: `hq-${idx}-${country}`, type: 'hq', address, label: country, coords });
         });
-
-        // Add Regions
         Object.entries(data.regions).forEach(([country, address], idx) => {
             const coords = getCoordinates(address);
-            if (coords) {
-                points.push({
-                    id: `region-${idx}-${country}`,
-                    type: 'region',
-                    address,
-                    label: country,
-                    coords
-                });
-            }
+            if (coords) points.push({ id: `region-${idx}-${country}`, type: 'region', address, label: country, coords });
         });
-
         return points;
     }, [data]);
 
+    const countriesList = useMemo(() => {
+        return Array.from(new Set(allPoints.map(p => ({
+            name: p.label.split(' ')[0],
+            coords: p.coords
+        })))).filter((v, i, a) => a.findIndex(t => t.name === v.name) === i);
+    }, [allPoints]);
+
     useEffect(() => {
         setVisiblePoints([]);
-        const timers: NodeJS.Timeout[] = [];
-        
+        const timers: NodeJS.Timeout[] =[];
         allPoints.forEach((point, index) => {
             const timer = setTimeout(() => {
                 setVisiblePoints(prev => [...prev, point]);
-            }, index * 800); // Drop one by one every 800ms
+            }, index * 400);
             timers.push(timer);
         });
-
         return () => timers.forEach(t => clearTimeout(t));
     }, [allPoints]);
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="group relative h-[500px] w-full overflow-hidden rounded-[32px] bg-zinc-900 border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] md:h-[600px]"
+        <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ 
+                opacity: 1, 
+                y: 0, 
+                scale: 1, 
+                transition: { type: 'spring', stiffness: 350, damping: 25 } // Matched from Flashcard
+            }}
+            // Matched base styling from Flashcard (shadow, border radius, ring)
+            className="group relative w-full h-[500px] md:h-[600px] overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-zinc-100/80"
         >
-            <div className="absolute top-6 left-6 z-[1000] space-y-1">
-                <h3 className="text-xl font-bold text-white tracking-tight">Global Presence</h3>
-                <p className="text-sm text-zinc-400">Our footprint across the globe</p>
+            {/* Background Glow Effect - Exactly matching your Flashcard style */}
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[60px] pointer-events-none z-[400]" />
+
+            {/* Header - Transparent overlay matching your typographic scale */}
+            <div className="absolute top-4 left-4 md:top-10 md:left-10 z-[500] pointer-events-none max-w-[60%]">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                >
+                    <h3 className="text-lg md:text-3xl font-black text-zinc-900 leading-tight tracking-tight uppercase">
+                        Global <span className="text-blue-600">Network</span>
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1 md:mt-2">
+                        <div className="h-[1.5px] md:h-[2px] w-4 md:w-8 bg-blue-600 rounded-full" />
+                        <p className="text-[8px] md:text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] whitespace-nowrap">
+                            Global Footprint
+                        </p>
+                    </div>
+                </motion.div>
             </div>
 
-            <div className="absolute top-6 right-6 z-[1000] flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 backdrop-blur-md border border-white/10">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                    <span className="text-[10px] font-medium text-white uppercase tracking-wider">Headquarters</span>
+            {/* Legend - Responsive layout */}
+            <div className="absolute top-4 right-4 md:top-10 md:right-10 z-[500] flex flex-col items-end gap-1.5 md:flex-row md:gap-2">
+                <div className="flex items-center gap-2 rounded-lg md:rounded-xl bg-white/90 px-2 py-1 md:px-3 md:py-1.5 backdrop-blur-xl ring-1 ring-zinc-100 shadow-sm">
+                    <div className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
+                    <span className="text-[8px] md:text-[10px] font-black text-zinc-700 uppercase tracking-widest">HQ</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 backdrop-blur-md border border-white/5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                    <span className="text-[10px] font-medium text-zinc-300 uppercase tracking-wider">Regions</span>
+                <div className="flex items-center gap-2 rounded-lg md:rounded-xl bg-white/90 px-2 py-1 md:px-3 md:py-1.5 backdrop-blur-xl ring-1 ring-zinc-100 shadow-sm">
+                    <div className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-blue-400"></div>
+                    <span className="text-[8px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Regions</span>
                 </div>
             </div>
 
-            <MapContainer 
-                center={[20, 0]} 
-                zoom={2} 
-                style={{ height: '100%', width: '100%', background: '#111' }}
+            <MapContainer
+                center={[20, 0]}
+                zoom={2}
+                style={{ height: '100%', width: '100%', background: '#fafafa' }} // Matches zinc-50
                 zoomControl={false}
                 attributionControl={false}
             >
+                {/* White, clean map base without labels */}
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
                 />
-                
+
                 {visiblePoints.map((point) => (
-                    <Marker 
-                        key={point.id} 
-                        position={point.coords} 
+                    <Marker
+                        key={point.id}
+                        position={point.coords}
                         icon={point.type === 'hq' ? HQIcon : RegionIcon}
                     >
-                        <Popup className="premium-popup">
-                            <div className="p-1">
-                                <div className="text-sm font-bold text-zinc-900 mb-1">{point.label}</div>
-                                <div className="text-[10px] text-zinc-500 leading-tight leading-relaxed max-w-[200px]">{point.address}</div>
+                        <Popup className="flashcard-popup">
+                            <div className="p-1 min-w-[180px]">
+                                <div className="text-[13px] md:text-[15px] font-bold text-zinc-900 mb-1 flex items-center justify-between">
+                                    {point.label}
+                                    {point.type === 'hq' && (
+                                        <span className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100 px-1.5 py-0.5 rounded-md ml-2">HQ</span>
+                                    )}
+                                </div>
+                                <div className="text-xs md:text-sm text-zinc-600 leading-relaxed font-medium">
+                                    {point.address}
+                                </div>
                             </div>
                         </Popup>
                     </Marker>
                 ))}
 
-                <ChangeView positions={visiblePoints.map(p => p.coords)} />
+                <ChangeView 
+                    positions={allPoints.map(p => p.coords)} 
+                    isComplete={visiblePoints.length === allPoints.length} 
+                />
             </MapContainer>
 
-            {/* Bottom Status Bar */}
-            <div className="absolute bottom-6 left-6 right-6 z-[1000]">
-                <div className="flex items-center justify-between rounded-2xl bg-black/40 p-4 backdrop-blur-xl border border-white/10 shadow-lg">
-                    <div className="flex gap-8">
-                        <div>
-                            <div className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Locations Found</div>
-                            <div className="text-xl font-bold text-white">{visiblePoints.length}<span className="text-zinc-600"> / {allPoints.length}</span></div>
+            {/* Bottom Status Bar - Responsive Design */}
+            <div className="absolute bottom-4 left-4 right-4 md:bottom-10 md:left-10 md:right-10 z-[500]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 rounded-[1.5rem] md:rounded-[2rem] bg-white/90 p-4 md:px-8 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] ring-1 ring-white/60 group/status transition-all duration-500 hover:ring-blue-200">
+                    
+                    {/* Stats Section */}
+                    <div className="flex items-center justify-between md:justify-start gap-6 md:gap-16">
+                        <div className="group/stat">
+                            <div className="text-[8px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5 md:mb-1.5 transition-colors group-hover/stat:text-blue-500">Hubs</div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-2xl md:text-4xl font-black text-zinc-900 leading-none">
+                                    {visiblePoints.length}
+                                </span>
+                                <span className="text-[8px] md:text-xs font-bold text-zinc-400">Nodes</span>
+                            </div>
                         </div>
-                        <div className="h-10 w-px bg-white/10"></div>
-                        <div>
-                            <div className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Countries</div>
-                            <div className="text-xl font-bold text-white">
-                                {new Set(allPoints.map(p => p.label.split(' ')[0])).size}
+
+                        {/* Aesthetic Vertical Divider */}
+                        <div className="h-8 md:h-12 w-[1px] bg-zinc-200/80 rotate-12 transition-transform group-hover/status:rotate-0 duration-700"></div>
+
+                        <div className="group/stat">
+                            <div className="text-[8px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5 md:mb-1.5 transition-colors group-hover/stat:text-blue-500">Nations</div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-2xl md:text-4xl font-black text-zinc-900 leading-none">
+                                    {countriesList.length}
+                                </span>
+                                <span className="text-[8px] md:text-xs font-bold text-zinc-400">Reach</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div className="flex -space-x-2">
-                        {visiblePoints.slice(0, 5).map((p, i) => (
-                            <div 
-                                key={i}
-                                className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white"
+
+                    {/* Interactive Countries Ribbon */}
+                    <div className="flex flex-wrap items-center gap-1.5 md:gap-2 md:justify-end max-w-full md:max-w-[50%] p-1 md:p-0 overflow-x-auto no-scrollbar">
+                        {countriesList.map((country, idx) => (
+                            <button
+                                key={country.name}
+                                onClick={(e) => {
+                                    const map = (e.currentTarget.closest('.leaflet-container') as any)?._leaflet_map;
+                                    if(map) map.flyTo(country.coords, 5, { duration: 1.5 });
+                                }}
+                                className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-zinc-100/80 text-[9px] md:text-[11px] font-black text-zinc-600 uppercase tracking-wider hover:bg-blue-600 hover:text-white hover:scale-105 hover:shadow-lg transition-all active:scale-95 whitespace-nowrap"
                             >
-                                {p.label.charAt(0)}
-                            </div>
+                                {country.name}
+                            </button>
                         ))}
-                        {visiblePoints.length > 5 && (
-                            <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white">
-                                +{visiblePoints.length - 5}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
 
             <style jsx global>{`
+                /* Smooth Pop Animation from Flashcard Variants */
                 @keyframes drop {
-                    0% { transform: translateY(-40px) scale(0); opacity: 0; }
-                    60% { transform: translateY(5px) scale(1.1); opacity: 1; }
-                    100% { transform: translateY(0) scale(1); opacity: 1; }
-                }
-                .premium-popup .leaflet-popup-content-wrapper {
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(8px);
-                    border-radius: 16px;
-                    border: 1px solid rgba(0, 0, 0, 0.1);
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                }
-                .premium-popup .leaflet-popup-tip {
-                    background: rgba(255, 255, 255, 0.95);
-                }
-                .leaflet-container {
-                    background: #111 !important;
+                    0% { transform: scale(0.5); opacity: 0; }
+                    80% { transform: scale(1.1); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
                 }
                 .custom-marker {
-                    animation: drop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    animation: drop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Spring curve */
+                }
+
+                /* Flashcard Popups */
+                .flashcard-popup .leaflet-popup-content-wrapper {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(24px);
+                    -webkit-backdrop-filter: blur(24px);
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.6);
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+                    padding: 4px;
+                }
+                .flashcard-popup .leaflet-popup-tip {
+                    background: rgba(255, 255, 255, 0.95);
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+                }
+                .flashcard-popup .leaflet-popup-content {
+                    margin: 12px 14px;
+                }
+                
+                /* Keep map background bright to match */
+                .leaflet-container {
+                    background: transparent !important;
                 }
             `}</style>
         </motion.div>
