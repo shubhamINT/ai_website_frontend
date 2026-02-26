@@ -9,7 +9,6 @@ import { ContactFormSubmit } from './ContactFormSubmit';
 import { StarterScreen } from './StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
 import dynamic from 'next/dynamic';
-import { SmartIcon } from './SmartIcon';
 
 const MapDisplay = dynamic<any>(() => import('./MapDisplay').then(mod => mod.MapDisplay), {
     ssr: false,
@@ -19,6 +18,11 @@ const MapDisplay = dynamic<any>(() => import('./MapDisplay').then(mod => mod.Map
 const GlobalPresenceMap = dynamic<any>(() => import('./GlobalPresenceMap').then(mod => mod.GlobalPresenceMap), {
     ssr: false,
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-900/50 backdrop-blur-md md:h-[450px]" />
+});
+
+const NearbyOffices = dynamic<any>(() => import('./NearbyOffices').then(mod => mod.NearbyOffices), {
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
 });
 
 interface AgentInterfaceProps {
@@ -188,7 +192,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
             m.type === 'contact_form' ||
             m.type === 'contact_form_submit' ||
             m.type === 'map_polyline' ||
-            m.type === 'global_presence'
+            m.type === 'global_presence' ||
+            m.type === 'nearby_offices'
         );
         return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
@@ -221,6 +226,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     const globalPresenceMessage = useMemo(() => {
         if (latestVisualMessage?.type === 'global_presence') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const nearbyOfficesMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'nearby_offices') {
             return latestVisualMessage;
         }
         return null;
@@ -363,6 +375,13 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                         <GlobalPresenceMap
                             key={globalPresenceMessage.id}
                             data={globalPresenceMessage.globalPresenceData}
+                        />
+                    </div>
+                ) : latestVisualMessage?.type === 'nearby_offices' && nearbyOfficesMessage?.nearbyOfficesData ? (
+                    <div className="flex w-full max-w-7xl justify-center">
+                        <NearbyOffices
+                            key={nearbyOfficesMessage.id}
+                            data={nearbyOfficesMessage.nearbyOfficesData}
                         />
                     </div>
                 ) : flashcards.length > 0 ? (

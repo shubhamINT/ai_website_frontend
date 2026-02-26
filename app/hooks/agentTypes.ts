@@ -63,10 +63,21 @@ export interface GlobalPresenceData {
     headquarters: Record<string, string>;
 }
 
+export interface NearbyOffice {
+    id: string;
+    name: string;
+    address: string;
+    image_url: string;
+}
+
+export interface NearbyOfficesData {
+    offices: NearbyOffice[];
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices';
     text?: string;
     cardData?: {
         title: string;
@@ -78,6 +89,7 @@ export interface ChatMessage {
     locationRequestData?: LocationRequestData;
     mapPolylineData?: MapPolylineData;
     globalPresenceData?: GlobalPresenceData;
+    nearbyOfficesData?: NearbyOfficesData;
     isInterim?: boolean;
     timestamp: number;
 }

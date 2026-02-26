@@ -309,7 +309,7 @@ export function useAgentMessages() {
                 else if (topic === 'ui.global_presense' || data.type === 'global_presence') {
                     const id = `global-presence-${Date.now()}`;
                     console.log('--- GLOBAL PRESENCE (INCOMING) ---', data);
-                    
+
                     updateMessages((prev) => {
                         const next = new Map(prev);
                         next.set(id, {
@@ -321,6 +321,25 @@ export function useAgentMessages() {
                             globalPresenceData: {
                                 regions: data.data?.regions || data.regions || {},
                                 headquarters: data.data?.headquarters || data.headquarters || {},
+                            }
+                        });
+                        return next;
+                    });
+                }
+                else if (topic === 'ui.nearby_offices' || data.type === 'nearby_offices') {
+                    const id = `nearby-offices-${Date.now()}`;
+                    console.log('--- NEARBY OFFICES (INCOMING) ---', data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'nearby_offices',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            nearbyOfficesData: {
+                                offices: data.data?.offices || data.offices || [],
                             }
                         });
                         return next;
