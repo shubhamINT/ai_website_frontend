@@ -10,8 +10,8 @@ import { motion } from 'framer-motion';
 const DefaultIcon = L.icon({
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize:[25, 41],
-    iconAnchor: [12, 41],
+    iconSize: [25, 41],
+    iconAnchor:[12, 41],
 });
 
 // Premium HQ Marker (Concentric rings + Core Glow)
@@ -46,23 +46,23 @@ const COORDINATES_MAP: Record<string, [number, number]> = {
     "1310 S Vista Ave Ste 28, Boise, Idaho – 83705":[43.5891, -116.2081],
     "120 Adelaide Street West, Suite 2500, M5H 1T1":[43.6499, -79.3842],
     "13 More London Riverside, London SE1 2RE": [51.5048, -0.0786],
-    "BARTYCKA 22B M21A, 00-716 WARSZAWA": [52.2131, 21.0531],
+    "BARTYCKA 22B M21A, 00-716 WARSZAWA":[52.2131, 21.0531],
     "Indus Net Technologies PTE Ltd., 60 Paya Lebar Road, #09-43 Paya Lebar Square – 409051":[1.3182, 103.8931],
-    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091":[22.5726, 88.4339],
+    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091": [22.5726, 88.4339],
     "4th Floor, Block-2b, ECOSPACE BUSINESS PARK, AA II, Newtown, Chakpachuria, West Bengal 700160":[22.5835, 88.4735],
 };
 
-const getCoordinates = (address: string):[number, number] | null => {
+const getCoordinates = (address: string): [number, number] | null => {
     for (const [key, coords] of Object.entries(COORDINATES_MAP)) {
         if (address.includes(key) || key.includes(address)) return coords;
     }
     const lower = address.toLowerCase();
-    if (lower.includes('usa') || lower.includes('boise')) return[43.6150, -116.2023];
+    if (lower.includes('usa') || lower.includes('boise')) return [43.6150, -116.2023];
     if (lower.includes('canada')) return[43.6532, -79.3832];
-    if (lower.includes('uk') || lower.includes('london')) return [51.5074, -0.1278];
+    if (lower.includes('uk') || lower.includes('london')) return[51.5074, -0.1278];
     if (lower.includes('poland')) return [52.2297, 21.0122];
     if (lower.includes('singapore')) return[1.3521, 103.8198];
-    if (lower.includes('india') || lower.includes('kolkata')) return [22.5726, 88.3639];
+    if (lower.includes('india') || lower.includes('kolkata')) return[22.5726, 88.3639];
     return null;
 };
 
@@ -79,8 +79,9 @@ const ChangeView = ({ positions, isComplete }: { positions: [number, number][], 
     useEffect(() => {
         if (isComplete && positions.length > 0) {
             const bounds = L.latLngBounds(positions);
+            // Increased padding to account for the tilted perspective
             map.flyToBounds(bounds, { 
-                padding: [100, 100], 
+                padding: [150, 150], 
                 duration: 3, 
                 easeLinearity: 0.1 
             });
@@ -138,15 +139,12 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                 opacity: 1, 
                 y: 0, 
                 scale: 1, 
-                transition: { type: 'spring', stiffness: 350, damping: 25 } // Matched from Flashcard
+                transition: { type: 'spring', stiffness: 350, damping: 25 }
             }}
-            // Matched base styling from Flashcard (shadow, border radius, ring)
             className="group relative w-full h-[500px] md:h-[600px] overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-zinc-100/80"
         >
-            {/* Background Glow Effect - Exactly matching your Flashcard style */}
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[60px] pointer-events-none z-[400]" />
 
-            {/* Header - Transparent overlay matching your typographic scale */}
             <div className="absolute top-4 left-4 md:top-10 md:left-10 z-[500] pointer-events-none max-w-[60%]">
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -156,16 +154,9 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                     <h3 className="text-lg md:text-3xl font-black text-zinc-900 leading-tight tracking-tight uppercase">
                         Global <span className="text-blue-600">Network</span>
                     </h3>
-                    {/* <div className="flex items-center gap-2 mt-1 md:mt-2">
-                        <div className="h-[1.5px] md:h-[2px] w-4 md:w-8 bg-blue-600 rounded-full" />
-                        <p className="text-[8px] md:text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] whitespace-nowrap">
-                            Global Footprint
-                        </p>
-                    </div> */}
                 </motion.div>
             </div>
 
-            {/* Legend - Responsive layout */}
             <div className="absolute top-4 right-4 md:top-10 md:right-10 z-[500] flex flex-col items-end gap-1.5 md:flex-row md:gap-2">
                 <div className="flex items-center gap-2 rounded-lg md:rounded-xl bg-white/90 px-2 py-1 md:px-3 md:py-1.5 backdrop-blur-xl ring-1 ring-zinc-100 shadow-sm">
                     <div className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
@@ -177,51 +168,61 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                 </div>
             </div>
 
-            <MapContainer
-                center={[20, 0]}
-                zoom={2}
-                style={{ height: '100%', width: '100%', background: '#fafafa' }} // Matches zinc-50
-                zoomControl={false}
-                attributionControl={false}
-            >
-                {/* White, clean map base without labels */}
-                <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-                />
-
-                {visiblePoints.map((point) => (
-                    <Marker
-                        key={point.id}
-                        position={point.coords}
-                        icon={point.type === 'hq' ? HQIcon : RegionIcon}
+            {/* 3D Perspective Wrapper - Handles the Map Tilt! */}
+            <div className="absolute inset-0 z-0 pointer-events-auto overflow-hidden bg-[#aadaff]" style={{ perspective: '1000px' }}>
+                <div 
+                    className="absolute inset-[-20%] w-[140%] h-[140%]" 
+                    style={{ 
+                        transform: 'rotateX(30deg)', 
+                        transformOrigin: '50% 50%',
+                        transition: 'transform 0.5s ease-out'
+                    }}
+                >
+                    <MapContainer
+                        center={[20, 0]}
+                        zoom={2}
+                        style={{ height: '100%', width: '100%', background: 'transparent' }} 
+                        zoomControl={false}
+                        attributionControl={false}
                     >
-                        <Popup className="flashcard-popup">
-                            <div className="p-1 min-w-[180px]">
-                                <div className="text-[13px] md:text-[15px] font-bold text-zinc-900 mb-1 flex items-center justify-between">
-                                    {point.label}
-                                    {point.type === 'hq' && (
-                                        <span className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100 px-1.5 py-0.5 rounded-md ml-2">HQ</span>
-                                    )}
-                                </div>
-                                <div className="text-xs md:text-sm text-zinc-600 leading-relaxed font-medium">
-                                    {point.address}
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
+                        {/* Swapped to OpenStreetMap Standard for vibrant, colorful ocean/land masses */}
+                        <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
 
-                <ChangeView 
-                    positions={allPoints.map(p => p.coords)} 
-                    isComplete={visiblePoints.length === allPoints.length} 
-                />
-            </MapContainer>
+                        {visiblePoints.map((point) => (
+                            <Marker
+                                key={point.id}
+                                position={point.coords}
+                                icon={point.type === 'hq' ? HQIcon : RegionIcon}
+                            >
+                                <Popup className="flashcard-popup">
+                                    <div className="p-1 min-w-[180px]">
+                                        <div className="text-[13px] md:text-[15px] font-bold text-zinc-900 mb-1 flex items-center justify-between">
+                                            {point.label}
+                                            {point.type === 'hq' && (
+                                                <span className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100 px-1.5 py-0.5 rounded-md ml-2">HQ</span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs md:text-sm text-zinc-600 leading-relaxed font-medium">
+                                            {point.address}
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))}
 
-            {/* Bottom Status Bar - Responsive Design */}
+                        <ChangeView 
+                            positions={allPoints.map(p => p.coords)} 
+                            isComplete={visiblePoints.length === allPoints.length} 
+                        />
+                    </MapContainer>
+                </div>
+            </div>
+
             <div className="absolute bottom-4 left-4 right-4 md:bottom-10 md:left-10 md:right-10 z-[500]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 rounded-[1.5rem] md:rounded-[2rem] bg-white/90 p-4 md:px-8 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.15)] ring-1 ring-white/60 group/status transition-all duration-500 hover:ring-blue-200">
                     
-                    {/* Stats Section */}
                     <div className="flex items-center justify-between md:justify-start gap-6 md:gap-16">
                         <div className="group/stat">
                             <div className="text-[8px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5 md:mb-1.5 transition-colors group-hover/stat:text-blue-500">Hubs</div>
@@ -233,7 +234,6 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                             </div>
                         </div>
 
-                        {/* Aesthetic Vertical Divider */}
                         <div className="h-8 md:h-12 w-[1px] bg-zinc-200/80 rotate-12 transition-transform group-hover/status:rotate-0 duration-700"></div>
 
                         <div className="group/stat">
@@ -247,13 +247,12 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                         </div>
                     </div>
 
-                    {/* Interactive Countries Ribbon */}
                     <div className="flex flex-wrap items-center gap-1.5 md:gap-2 md:justify-end max-w-full md:max-w-[50%] p-1 md:p-0 overflow-x-auto no-scrollbar">
-                        {countriesList.map((country, idx) => (
+                        {countriesList.map((country) => (
                             <button
                                 key={country.name}
                                 onClick={(e) => {
-                                    const map = (e.currentTarget.closest('.leaflet-container') as any)?._leaflet_map;
+                                    const map = (e.currentTarget.closest('.group') as any)?.querySelector('.leaflet-container')?._leaflet_map;
                                     if(map) map.flyTo(country.coords, 5, { duration: 1.5 });
                                 }}
                                 className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-zinc-100/80 text-[9px] md:text-[11px] font-black text-zinc-600 uppercase tracking-wider hover:bg-blue-600 hover:text-white hover:scale-105 hover:shadow-lg transition-all active:scale-95 whitespace-nowrap"
@@ -266,17 +265,15 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
             </div>
 
             <style jsx global>{`
-                /* Smooth Pop Animation from Flashcard Variants */
                 @keyframes drop {
                     0% { transform: scale(0.5); opacity: 0; }
                     80% { transform: scale(1.1); opacity: 1; }
                     100% { transform: scale(1); opacity: 1; }
                 }
                 .custom-marker {
-                    animation: drop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Spring curve */
+                    animation: drop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 }
 
-                /* Flashcard Popups */
                 .flashcard-popup .leaflet-popup-content-wrapper {
                     background: rgba(255, 255, 255, 0.95);
                     backdrop-filter: blur(24px);
@@ -294,7 +291,6 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                     margin: 12px 14px;
                 }
                 
-                /* Keep map background bright to match */
                 .leaflet-container {
                     background: transparent !important;
                 }

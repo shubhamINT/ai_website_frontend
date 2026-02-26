@@ -14,9 +14,10 @@ interface FlashcardProps {
         query?: string;
         source?: 'unsplash' | 'pexels' | 'pixabay';
         aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
-        mediaType?: 'image' | 'video'; 
+        mediaType?: 'image' | 'video';
     };
-    icon?: string | { type: 'static'; ref: string; fallback?: string }; 
+    icon?: string | { type: 'static'; ref: string; fallback?: string };
+    layoutId?: string;
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
@@ -61,8 +62,8 @@ export const Flashcard = React.memo(({
     title = "Information",
     value = "",
     accentColor,
-    icon,        
-    smartIcon,   
+    icon,
+    smartIcon,
     theme,
     size,
     layout = 'default',
@@ -70,7 +71,8 @@ export const Flashcard = React.memo(({
     visual_intent,
     animation_style,
     dynamicMedia,
-    media
+    media,
+    layoutId
 }: FullFlashcardProps) => {
 
     const resolvedMedia = (dynamicMedia || media) as FlashcardProps['media'];
@@ -122,7 +124,7 @@ export const Flashcard = React.memo(({
 
     const renderContent = (text: string) => {
         if (!text) return null;
-        
+
         return (
             <div className={`
                 markdown-render 
@@ -145,7 +147,8 @@ export const Flashcard = React.memo(({
 
     return (
         <motion.div
-            layout 
+            layout
+            layoutId={layoutId}
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -168,27 +171,27 @@ export const Flashcard = React.memo(({
                 {/* Horizontal Layout Image: Standardized to slightly wider card ratio instead of cramped portrait */}
                 {layout === 'horizontal' && (image || resolvedMedia) && (
                     <div className="w-full sm:w-[180px] md:w-[220px] shrink-0 mx-auto md:my-auto">
-                         <div className={`rounded-xl md:rounded-[1.5rem] overflow-hidden relative w-full h-full p-2
+                        <div className={`rounded-xl md:rounded-[1.5rem] overflow-hidden relative w-full h-full p-2
                             ${resolvedMedia?.aspectRatio === 'portrait' ? 'aspect-[3/4]' : 'aspect-video'}
                          `}>
                             <RichMedia
                                 urls={resolvedMedia?.urls}
                                 query={resolvedMedia?.query || (image ? undefined : title)}
                                 source={resolvedMedia?.source}
-                                 aspectRatio={resolvedMedia?.aspectRatio || "video"} 
+                                aspectRatio={resolvedMedia?.aspectRatio || "video"}
                                 alt={title}
                                 mediaType={resolvedMedia?.mediaType}
                             />
                             {!resolvedMedia && image?.url && (
-                                 <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-contain p-1 transition-transform duration-700 group-hover:scale-110" />
+                                <img src={image.url} alt={image.alt} className="absolute inset-0 w-full h-full object-contain p-1 transition-transform duration-700 group-hover:scale-110" />
                             )}
-                         </div>
+                        </div>
                     </div>
                 )}
 
                 {/* Main Content Column */}
                 <div className={`flex flex-col flex-grow ${layout === 'horizontal' ? 'flex-1 min-w-0 justify-center' : 'w-full'}`}>
-                    
+
                     {/* Header */}
                     <div className={`flex items-start ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
                         <div className={`flex items-center gap-2 md:gap-3 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
@@ -225,15 +228,15 @@ export const Flashcard = React.memo(({
                     {/* Vertical Media: DYNAMIC Aspect Ratio ensures 'Full Size' visibility without cropping */}
                     {layout !== 'horizontal' && (image || resolvedMedia) && (
                         <div className={`mt-3 mb-1 w-full rounded-xl md:rounded-[1.8rem] overflow-hidden relative shrink-0 p-3
-                            ${resolvedMedia?.aspectRatio === 'portrait' ? 'aspect-[3/4]' : 
-                              resolvedMedia?.aspectRatio === 'square' ? 'aspect-square' : 
-                              'aspect-video'}
+                            ${resolvedMedia?.aspectRatio === 'portrait' ? 'aspect-[3/4]' :
+                                resolvedMedia?.aspectRatio === 'square' ? 'aspect-square' :
+                                    'aspect-video'}
                         `}>
                             <RichMedia
                                 urls={resolvedMedia?.urls}
                                 query={resolvedMedia?.query || (image ? undefined : title)}
                                 source={resolvedMedia?.source}
-                                 aspectRatio={resolvedMedia?.aspectRatio || "video"} // <-- Use provided aspect ratio or default to video
+                                aspectRatio={resolvedMedia?.aspectRatio || "video"} // <-- Use provided aspect ratio or default to video
                                 alt={title}
                                 mediaType={resolvedMedia?.mediaType}
                             />

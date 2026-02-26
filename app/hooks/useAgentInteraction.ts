@@ -32,8 +32,11 @@ export function useAgentInteraction() {
 
     // --- State & Tracks (Kept here as it's simple/glue code) ---
     // Simple state mapping
-    const agentState: AgentState = state === 'speaking' ? 'speaking' :
-        state === 'listening' ? 'listening' : 'idle';
+    const agentState: AgentState =
+        state === 'speaking' ? 'speaking' :
+            state === 'listening' ? 'listening' :
+                (state === 'thinking' || (state as string) === 'loading') ? 'thinking' :
+                    'idle';
 
     // Pass the agentTrack directly
     const activeTrack = useMemo(() => {

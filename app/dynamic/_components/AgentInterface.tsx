@@ -9,13 +9,14 @@ import { ContactFormSubmit } from './ContactFormSubmit';
 import { StarterScreen } from './StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
 import dynamic from 'next/dynamic';
+import { SmartIcon } from './SmartIcon';
 
-const MapDisplay = dynamic(() => import('./MapDisplay').then(mod => mod.MapDisplay), { 
+const MapDisplay = dynamic<any>(() => import('./MapDisplay').then(mod => mod.MapDisplay), {
     ssr: false,
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
 });
 
-const GlobalPresenceMap = dynamic(() => import('./GlobalPresenceMap').then(mod => mod.GlobalPresenceMap), { 
+const GlobalPresenceMap = dynamic<any>(() => import('./GlobalPresenceMap').then(mod => mod.GlobalPresenceMap), {
     ssr: false,
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-900/50 backdrop-blur-md md:h-[450px]" />
 });
@@ -73,7 +74,7 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     if (validCards.length === 0) return null;
 
     const count = validCards.length;
-    
+
     let gridClasses = "grid gap-4 md:gap-6 w-full mx-auto ";
     if (count === 1) {
         gridClasses += "grid-cols-1 max-w-2xl";
@@ -96,11 +97,11 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                 <AnimatePresence mode="popLayout">
                     {validCards.map((card, idx) => {
                         let itemClass = "flex w-full h-full";
-                        
+
                         // Determine internal Flashcard layout based on grid scenario
                         let layoutProp: 'default' | 'horizontal' = 'default';
                         if (count === 1) {
-                            layoutProp = 'horizontal'; 
+                            layoutProp = 'horizontal';
                         }
 
                         // Smoother liquid animation flow without hardcoded delays
@@ -109,12 +110,12 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                                 layout
                                 key={card.id}
                                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                                animate={{ 
+                                animate={{
                                     opacity: 1, y: 0, scale: 1,
                                     transition: {
-                                        type: "spring", 
-                                        stiffness: 160, 
-                                        damping: 20, 
+                                        type: "spring",
+                                        stiffness: 160,
+                                        damping: 20,
                                         mass: 0.8
                                     }
                                 }}
@@ -123,7 +124,12 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                                 transition={{ type: "spring", stiffness: 180, damping: 22 }}
                                 className={itemClass}
                             >
-                                <Flashcard {...card.cardData} size="bento" layout={layoutProp} />
+                                <Flashcard
+                                    {...card.cardData}
+                                    size="bento"
+                                    layout={layoutProp}
+                                    layoutId={card.id}
+                                />
                             </motion.div>
                         );
                     })}
@@ -177,9 +183,9 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     const latestVisualMessage = useMemo(() => {
         // location_request is intentionally excluded — it's handled silently via useEffect
-        const visualMsgs = messages.filter(m => 
-            m.type === 'flashcard' || 
-            m.type === 'contact_form' || 
+        const visualMsgs = messages.filter(m =>
+            m.type === 'flashcard' ||
+            m.type === 'contact_form' ||
             m.type === 'contact_form_submit' ||
             m.type === 'map_polyline' ||
             m.type === 'global_presence'
@@ -270,9 +276,10 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 maximumAge: 60000,   // Accept cached position up to 1 min old
             }
         );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [locationRequestMessage?.id]); // Only re-fire when a NEW location request arrives
     // ────────────────────────────────────────────────────────────────────────
+
 
     const handleSend = () => {
         if (!inputText.trim()) return;
@@ -295,7 +302,42 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl bg-transparent ring-1 ring-black/5 shadow-2xl">
             <RoomAudioRenderer />
-            <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
+
+
+            {/* Thinking / Loading Overlay */}
+            <AnimatePresence>
+                {agentState === 'thinking' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-40 flex items-center justify-center bg-white/10 backdrop-blur-[2px]"
+                    >
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="flex gap-2">
+                                {[0, 1, 2].map((i) => (
+                                    <motion.div
+                                        key={i}
+                                        className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                                        animate={{ y: [0, -10, 0] }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.6,
+                                            delay: i * 0.1,
+                                            ease: "easeInOut"
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                            <span className="text-xs font-bold uppercase tracking-widest text-blue-600/80">
+                                Thinking
+                            </span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div className={`absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide transition-all duration-500 ${agentState === 'thinking' ? 'blur-sm scale-95 opacity-50' : 'blur-0 scale-100 opacity-100'}`}>
                 {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactFormSubmit key={contactFormSubmitMessage.id} data={contactFormSubmitMessage.contactFormData} />
@@ -306,8 +348,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                     </div>
                 ) : latestVisualMessage?.type === 'map_polyline' && mapPolylineMessage?.mapPolylineData ? (
                     <div className="flex w-full max-w-4xl justify-center">
-                        <MapDisplay 
-                            key={mapPolylineMessage.id} 
+                        <MapDisplay
+                            key={mapPolylineMessage.id}
                             polyline={mapPolylineMessage.mapPolylineData.polyline}
                             origin={mapPolylineMessage.mapPolylineData.origin}
                             destination={mapPolylineMessage.mapPolylineData.destination}
@@ -318,7 +360,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                     </div>
                 ) : latestVisualMessage?.type === 'global_presence' && globalPresenceMessage?.globalPresenceData ? (
                     <div className="flex w-full max-w-5xl justify-center">
-                        <GlobalPresenceMap 
+                        <GlobalPresenceMap
                             key={globalPresenceMessage.id}
                             data={globalPresenceMessage.globalPresenceData}
                         />
@@ -326,10 +368,9 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 ) : flashcards.length > 0 ? (
                     <CardDisplay cards={flashcards} />
                 ) : (
-                    <StarterScreen 
-                        onSelectQuestion={sendText} 
-                        activeTrack={activeTrack} 
-                        userTrack={userTrack} 
+                    <StarterScreen
+                        activeTrack={activeTrack}
+                        userTrack={userTrack}
                     />
                 )}
             </div>

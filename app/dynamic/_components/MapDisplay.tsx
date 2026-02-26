@@ -27,9 +27,9 @@ const EndIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
-    iconAnchor: [12, 41],
+    iconAnchor:[12, 41],
     popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    shadowSize:[41, 41]
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -39,7 +39,7 @@ const decodePolyline = (str: string) => {
     let index = 0;
     let lat = 0;
     let lng = 0;
-    const coordinates = [];
+    const coordinates =[];
     let shift = 0;
     let result = 0;
     let byte = null;
@@ -119,7 +119,7 @@ const TravelModeIcon = ({ mode }: { mode?: string }) => {
 }
 
 export const MapDisplay = React.memo(({ polyline, origin, destination, travelMode, distance, duration }: MapDisplayProps) => {
-    const positions = useMemo(() => decodePolyline(polyline), [polyline]);
+    const positions = useMemo(() => decodePolyline(polyline),[polyline]);
     
     const bounds = useMemo(() => {
         if (positions.length === 0) return null;
@@ -152,17 +152,19 @@ export const MapDisplay = React.memo(({ polyline, origin, destination, travelMod
                 zoomControl={false}
                 scrollWheelZoom={false}
             >
+                {/* Replaced the gray, muted CARTO map with the vibrant OpenStreetMap standard tiles */}
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 
+                {/* Thickened and fully opaqued the line so it stands out over the new colorful map */}
                 <Polyline 
                     positions={positions} 
                     pathOptions={{ 
                         color: '#2563eb', 
-                        weight: 5, 
-                        opacity: 0.8,
+                        weight: 6, 
+                        opacity: 1,
                         lineCap: 'round',
                         lineJoin: 'round'
                     }} 
