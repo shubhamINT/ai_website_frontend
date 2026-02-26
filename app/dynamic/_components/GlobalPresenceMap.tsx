@@ -156,12 +156,12 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                     <h3 className="text-lg md:text-3xl font-black text-zinc-900 leading-tight tracking-tight uppercase">
                         Global <span className="text-blue-600">Network</span>
                     </h3>
-                    <div className="flex items-center gap-2 mt-1 md:mt-2">
+                    {/* <div className="flex items-center gap-2 mt-1 md:mt-2">
                         <div className="h-[1.5px] md:h-[2px] w-4 md:w-8 bg-blue-600 rounded-full" />
                         <p className="text-[8px] md:text-xs text-zinc-500 font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] whitespace-nowrap">
                             Global Footprint
                         </p>
-                    </div>
+                    </div> */}
                 </motion.div>
             </div>
 
