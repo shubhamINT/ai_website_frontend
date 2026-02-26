@@ -26,7 +26,7 @@ const HQIcon = L.divIcon({
     `,
     className: 'custom-marker-hq',
     iconSize: [48, 48],
-    iconAnchor: [24, 24],
+    iconAnchor:[24, 24],
 });
 
 // Premium Region Marker (Clean Node)
@@ -38,17 +38,17 @@ const RegionIcon = L.divIcon({
         </div>
     `,
     className: 'custom-marker-region',
-    iconSize: [32, 32],
+    iconSize:[32, 32],
     iconAnchor: [16, 16],
 });
 
 const COORDINATES_MAP: Record<string, [number, number]> = {
     "1310 S Vista Ave Ste 28, Boise, Idaho – 83705":[43.5891, -116.2081],
     "120 Adelaide Street West, Suite 2500, M5H 1T1":[43.6499, -79.3842],
-    "13 More London Riverside, London SE1 2RE": [51.5048, -0.0786],
+    "13 More London Riverside, London SE1 2RE":[51.5048, -0.0786],
     "BARTYCKA 22B M21A, 00-716 WARSZAWA":[52.2131, 21.0531],
     "Indus Net Technologies PTE Ltd., 60 Paya Lebar Road, #09-43 Paya Lebar Square – 409051":[1.3182, 103.8931],
-    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091": [22.5726, 88.4339],
+    "4th Floor, SDF Building Saltlake Electronic Complex, Kolkata, West Bengal 700091":[22.5726, 88.4339],
     "4th Floor, Block-2b, ECOSPACE BUSINESS PARK, AA II, Newtown, Chakpachuria, West Bengal 700160":[22.5835, 88.4735],
 };
 
@@ -57,10 +57,10 @@ const getCoordinates = (address: string): [number, number] | null => {
         if (address.includes(key) || key.includes(address)) return coords;
     }
     const lower = address.toLowerCase();
-    if (lower.includes('usa') || lower.includes('boise')) return [43.6150, -116.2023];
+    if (lower.includes('usa') || lower.includes('boise')) return[43.6150, -116.2023];
     if (lower.includes('canada')) return[43.6532, -79.3832];
     if (lower.includes('uk') || lower.includes('london')) return[51.5074, -0.1278];
-    if (lower.includes('poland')) return [52.2297, 21.0122];
+    if (lower.includes('poland')) return[52.2297, 21.0122];
     if (lower.includes('singapore')) return[1.3521, 103.8198];
     if (lower.includes('india') || lower.includes('kolkata')) return[22.5726, 88.3639];
     return null;
@@ -79,9 +79,9 @@ const ChangeView = ({ positions, isComplete }: { positions: [number, number][], 
     useEffect(() => {
         if (isComplete && positions.length > 0) {
             const bounds = L.latLngBounds(positions);
-            // Increased padding to account for the tilted perspective
+            // Reverted padding to standard since the map is flat again
             map.flyToBounds(bounds, { 
-                padding: [150, 150], 
+                padding: [100, 100], 
                 duration: 3, 
                 easeLinearity: 0.1 
             });
@@ -141,7 +141,7 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                 scale: 1, 
                 transition: { type: 'spring', stiffness: 350, damping: 25 }
             }}
-            className="group relative w-full h-[500px] md:h-[600px] overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-zinc-100/80"
+            className="group relative w-full h-[500px] md:h-[600px] overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-zinc-100/80 z-0"
         >
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[60px] pointer-events-none z-[400]" />
 
@@ -168,56 +168,46 @@ export const GlobalPresenceMap = ({ data }: GlobalPresenceMapProps) => {
                 </div>
             </div>
 
-            {/* 3D Perspective Wrapper - Handles the Map Tilt! */}
-            <div className="absolute inset-0 z-0 pointer-events-auto overflow-hidden bg-[#aadaff]" style={{ perspective: '1000px' }}>
-                <div 
-                    className="absolute inset-[-20%] w-[140%] h-[140%]" 
-                    style={{ 
-                        transform: 'rotateX(30deg)', 
-                        transformOrigin: '50% 50%',
-                        transition: 'transform 0.5s ease-out'
-                    }}
+            {/* Flat Map implementation (Tilt Removed) */}
+            <div className="absolute inset-0 z-0 pointer-events-auto overflow-hidden bg-[#aadaff]">
+                <MapContainer
+                    center={[20, 0]}
+                    zoom={2}
+                    style={{ height: '100%', width: '100%', background: 'transparent' }} 
+                    zoomControl={false}
+                    attributionControl={false}
                 >
-                    <MapContainer
-                        center={[20, 0]}
-                        zoom={2}
-                        style={{ height: '100%', width: '100%', background: 'transparent' }} 
-                        zoomControl={false}
-                        attributionControl={false}
-                    >
-                        {/* Swapped to OpenStreetMap Standard for vibrant, colorful ocean/land masses */}
-                        <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
+                    <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
 
-                        {visiblePoints.map((point) => (
-                            <Marker
-                                key={point.id}
-                                position={point.coords}
-                                icon={point.type === 'hq' ? HQIcon : RegionIcon}
-                            >
-                                <Popup className="flashcard-popup">
-                                    <div className="p-1 min-w-[180px]">
-                                        <div className="text-[13px] md:text-[15px] font-bold text-zinc-900 mb-1 flex items-center justify-between">
-                                            {point.label}
-                                            {point.type === 'hq' && (
-                                                <span className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100 px-1.5 py-0.5 rounded-md ml-2">HQ</span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs md:text-sm text-zinc-600 leading-relaxed font-medium">
-                                            {point.address}
-                                        </div>
+                    {visiblePoints.map((point) => (
+                        <Marker
+                            key={point.id}
+                            position={point.coords}
+                            icon={point.type === 'hq' ? HQIcon : RegionIcon}
+                        >
+                            <Popup className="flashcard-popup">
+                                <div className="p-1 min-w-[180px]">
+                                    <div className="text-[13px] md:text-[15px] font-bold text-zinc-900 mb-1 flex items-center justify-between">
+                                        {point.label}
+                                        {point.type === 'hq' && (
+                                            <span className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-600 ring-1 ring-blue-100 px-1.5 py-0.5 rounded-md ml-2">HQ</span>
+                                        )}
                                     </div>
-                                </Popup>
-                            </Marker>
-                        ))}
+                                    <div className="text-xs md:text-sm text-zinc-600 leading-relaxed font-medium">
+                                        {point.address}
+                                    </div>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    ))}
 
-                        <ChangeView 
-                            positions={allPoints.map(p => p.coords)} 
-                            isComplete={visiblePoints.length === allPoints.length} 
-                        />
-                    </MapContainer>
-                </div>
+                    <ChangeView 
+                        positions={allPoints.map(p => p.coords)} 
+                        isComplete={visiblePoints.length === allPoints.length} 
+                    />
+                </MapContainer>
             </div>
 
             <div className="absolute bottom-4 left-4 right-4 md:bottom-10 md:left-10 md:right-10 z-[500]">
