@@ -10,6 +10,7 @@ interface RichMediaProps {
     source?: 'unsplash' | 'pexels' | 'pixabay';
     aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
     alt?: string;
+    mediaType?: 'image' | 'video' | 'youtube' | 'vimeo'; // Explicit override
 }
 
 type MediaType = 'image' | 'video' | 'youtube' | 'vimeo' | 'unknown';
@@ -19,13 +20,14 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     query,
     source,
     aspectRatio = 'video',
-    alt = 'Media content'
+    alt = 'Media content',
+    mediaType: explicitMediaType
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
 
-    const safeUrls = urls || [];
+    const safeUrls = Array.isArray(urls) ? urls : (typeof urls === 'string' ? [urls] : []);
 
     // Reset index if URLs change
     useEffect(() => {
@@ -41,6 +43,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
 
     // Helpers to detect media type
     const getMediaType = (url: string): MediaType => {
+        if (explicitMediaType) return explicitMediaType; // Use explicit type if provided
         if (!url) return 'unknown';
         const u = url.toLowerCase();
 
@@ -63,7 +66,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     };
 
     const renderSingleMedia = (url: string, type: MediaType, index: number) => {
-        const commonClasses = "h-full w-full object-cover transition-all duration-700";
+        const commonClasses = "h-full w-full object-contain transition-all duration-700";
 
         if (type === 'video') {
             return (
@@ -107,7 +110,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
             <img
                 src={url}
                 alt={`${alt} ${index + 1}`}
-                className={`${commonClasses} group-hover:scale-105`}
+                className={commonClasses}
                 onLoad={() => setIsLoading(false)}
                 onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://placehold.co/800x600?text=${encodeURIComponent(alt || 'Asset')}`;
@@ -124,7 +127,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         portrait: 'aspect-[3/4]'
     };
 
-    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.5rem] group ring-1 ring-black/5 shadow-inner bg-zinc-100/50 ${ratioMap[aspectRatio]}`;
+    const containerClasses = `relative w-full overflow-hidden rounded-xl md:rounded-[1.8rem] group bg-zinc-50/30 transition-all duration-500 ${ratioMap[aspectRatio]}`;
+    const autoRatioFallback = aspectRatio === 'auto' ? 'min-h-[200px]' : '';
 
     // Priority 1: Direct URLs
     if (safeUrls && safeUrls.length > 0) {
@@ -218,8 +222,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                     )}
 
                     {/* Ambient Overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[1.5rem] pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
                 </div>
             </div>
         );
@@ -228,7 +231,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     // Priority 2: Dynamic Search Fallback
     if (query) {
         return (
-            <div className={containerClasses}>
+            <div className={`${containerClasses} ${autoRatioFallback}`}>
                 <DynamicImage
                     query={query}
                     source={source}

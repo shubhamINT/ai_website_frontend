@@ -30,6 +30,7 @@ export function useLiveKitConnection() {
         user = {
             user_name: '',
             user_email: '',
+            user_phone: '',
             user_id: uuidv4()
         };
         if (typeof window !== 'undefined') {
@@ -39,6 +40,7 @@ export function useLiveKitConnection() {
 
     const name = user?.user_name || '';
     const email = user?.user_email || '';
+    const phone = user?.user_phone || '';
     const userId = user?.user_id || '';
 
 
@@ -48,7 +50,7 @@ export function useLiveKitConnection() {
         setError(null);
         try {
             // Send the user info to the backend
-            const url = `${TOKEN_ENDPOINT}?name=${name}&user_id=${userId}&agent=${agentName}&email=${email}`;
+            const url = `${TOKEN_ENDPOINT}?name=${name}&user_id=${userId}&agent=${agentName}&email=${email}&phone=${phone}`;
 
             const response = await fetch(url, { mode: 'cors' });
 
@@ -68,7 +70,7 @@ export function useLiveKitConnection() {
         } finally {
             setIsConnecting(false);
         }
-    }, [name, userId, email]);
+    }, [name, userId, email, phone]);
 
     const disconnect = useCallback(() => {
         setToken('');

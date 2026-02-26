@@ -65,7 +65,10 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
     const fallbackUrl = `https://placehold.co/${width}x${height}?text=${encodeURIComponent(alt)}`;
 
     return (
-        <div className={`relative overflow-hidden bg-zinc-100 ${className}`}>
+        <div
+            className={`relative w-full overflow-hidden bg-zinc-100 ${className || ''}`}
+            style={{ aspectRatio: `${width}/${height}` }}
+        >
             {/* Loading State */}
             {isLoading && (
                 <div className="absolute inset-0 z-10 bg-zinc-100/50 backdrop-blur-sm flex items-center justify-center">
@@ -84,7 +87,7 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                     alt={alt}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-700 hover:scale-105"
+                    className="object-contain transition-all duration-700"
                     onLoad={() => setIsLoading(false)}
                     onError={() => {
                         setError(true);

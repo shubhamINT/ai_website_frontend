@@ -36,17 +36,28 @@ export function useAgentMessages() {
 
             updateMessages((prev) => {
                 const next = new Map(prev);
+                let changed = false;
+
                 for (const segment of segments) {
+                    const cleanText = segment.text.replace(/\[.*?\]|<.*?>/g, '').trim();
+                    if (!cleanText && segment.final) continue; // Skip empty final segments
+
+                    const existing = next.get(segment.id);
+                    if (existing && existing.text === cleanText && existing.isInterim === !segment.final) {
+                        continue; // No change, skip update
+                    }
+
                     next.set(segment.id, {
                         id: segment.id,
                         type: 'text',
-                        text: segment.text.replace(/\[.*?\]|<.*?>/g, '').trim(),
+                        text: cleanText,
                         sender: senderIsAgent ? "agent" : "user",
                         isInterim: !segment.final,
                         timestamp: segment.firstReceivedTime,
                     });
+                    changed = true;
                 }
-                return next;
+                return changed ? next : prev;
             });
         };
 
@@ -163,27 +174,153 @@ export function useAgentMessages() {
                         ...existing,
                         ...(data.user_name && { user_name: data.user_name }),
                         ...(data.user_email && { user_email: data.user_email }),
+                        ...(data.user_phone && { user_phone: data.user_phone }),
                         ...(data.user_id && { user_id: data.user_id }),
                     }
                     localStorage.setItem('user_info', JSON.stringify(userInfo));
                     console.log('--- USER DETAILS (MERGED & SAVED) ---', userInfo);
                 }
-                else if (topic == 'ui.email_form' || data.type === 'email_form') {
-                    console.log('--- EMAIL FORM (INCOMING) ---', data);
-                    const id = `email-form-${Date.now()}`;
+                else if (data.type === 'map.polyline') {
+                    const id = `map-polyline-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    console.log('--- MAP POLYLINE (EXTRACTING) ---', {
+                        hasDataNested: !!data.data,
+                        keys: data.data ? Object.keys(data.data) : Object.keys(data)
+                    });
+
                     updateMessages((prev) => {
                         const next = new Map(prev);
                         next.set(id, {
                             id,
-                            type: 'email_form',
+                            type: 'map_polyline',
                             sender: 'agent',
                             timestamp: Date.now(),
                             isInterim: false,
-                            emailFormData: {
+                            mapPolylineData: {
+                                polyline: data.data?.polyline || data.polyline,
+                                origin: data.data?.origin || data.origin,
+                                destination: data.data?.destination || data.destination,
+                                travelMode: (data.data?.travelMode || data.travelMode) as any,
+                                distance: data.data?.distance || data.distance,
+                                duration: data.data?.duration || data.duration,
+                            }
+                        });
+                        return next;
+                    });
+                }
+                else if (topic === 'ui.location_request' || data.type === 'location_request') {
+                    // Check if this location request actually contains polyline data (some backends wrap them)
+                    if (data.data?.polyline || data.polyline || data.type === 'map.polyline' || data.data?.type === 'map.polyline') {
+                        const id = `map-polyline-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                        console.log('--- MAP POLYLINE (DETECTED INSIDE LOCATION REQ) ---', data);
+                        updateMessages((prev) => {
+                            const next = new Map(prev);
+                            next.set(id, {
+                                id,
+                                type: 'map_polyline',
+                                sender: 'agent',
+                                timestamp: Date.now(),
+                                isInterim: false,
+                                mapPolylineData: {
+                                    polyline: data.data?.polyline || data.polyline,
+                                    origin: data.data?.origin || data.origin,
+                                    destination: data.data?.destination || data.destination,
+                                    travelMode: (data.data?.travelMode || data.travelMode) as any,
+                                    distance: data.data?.distance || data.distance,
+                                    duration: data.data?.duration || data.duration,
+                                }
+                            });
+                            return next;
+                        });
+                        return;
+                    }
+
+                    const id = `location-req-${Date.now()}`;
+                    console.log('--- LOCATION REQUEST (INCOMING) ---', data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'location_request',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            locationRequestData: {
+                                reason: data.reason || undefined,
+                            }
+                        });
+                        return next;
+                    });
+
+                    // Safety net: auto-dismiss after 30s in case geolocation never resolves
+                    setTimeout(() => {
+                        updateMessages((prev) => {
+                            const next = new Map(prev);
+                            next.delete(id);
+                            return next;
+                        });
+                    }, 30000);
+                }
+                else if (topic === 'ui.contact_form' || data.type === 'contact_form' || data.type === 'contact_form_submit') {
+                    const isSubmit = data.type === 'contact_form_submit';
+                    const msgType = isSubmit ? 'contact_form_submit' : 'contact_form';
+                    const id = `${msgType}-${Date.now()}`;
+                    console.log(`--- CONTACT FORM (${isSubmit ? 'submitted' : 'preview'}) ---`, data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+
+                        // Clear previous contact_form previews on submit so screen is clean after dismiss
+                        if (isSubmit) {
+                            for (const [key, msg] of next.entries()) {
+                                if (msg.type === 'contact_form') {
+                                    next.delete(key);
+                                }
+                            }
+                        }
+
+                        next.set(id, {
+                            id,
+                            type: msgType,
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            contactFormData: {
                                 user_name: data.data?.user_name || data.user_name,
                                 user_email: data.data?.user_email || data.user_email,
-                                email_subject: data.data?.email_subject || data.email_subject,
-                                email_body: data.data?.email_body || data.email_body,
+                                user_phone: data.data?.user_phone || data.user_phone,
+                                contact_details: data.data?.contact_details || data.contact_details,
+                            }
+                        });
+                        return next;
+                    });
+
+                    // Auto-dismiss submit UI after 2 seconds
+                    if (isSubmit) {
+                        setTimeout(() => {
+                            updateMessages((prev) => {
+                                const next = new Map(prev);
+                                next.delete(id);
+                                return next;
+                            });
+                        }, 2000);
+                    }
+                }
+                else if (topic === 'ui.global_presense' || data.type === 'global_presence') {
+                    const id = `global-presence-${Date.now()}`;
+                    console.log('--- GLOBAL PRESENCE (INCOMING) ---', data);
+                    
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'global_presence',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            globalPresenceData: {
+                                regions: data.data?.regions || data.regions || {},
+                                headquarters: data.data?.headquarters || data.headquarters || {},
                             }
                         });
                         return next;

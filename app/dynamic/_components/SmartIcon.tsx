@@ -13,8 +13,15 @@ interface SmartIconProps extends LucideProps {
 }
 
 // 1. Dynamic Lucide Icon Loader
+const iconCache: Record<string, any> = {};
+
 const LucideIcon = ({ name, ...props }: { name: string } & LucideProps) => {
-    const IconComponent = dynamic(dynamicIconImports[name as keyof typeof dynamicIconImports] || dynamicIconImports['info']);
+    if (!iconCache[name]) {
+        const importFn = dynamicIconImports[name as keyof typeof dynamicIconImports] || dynamicIconImports['info'];
+        iconCache[name] = dynamic(importFn);
+    }
+    const IconComponent = iconCache[name];
+
     return (
         <Suspense fallback={<div className="w-5 h-5 bg-zinc-200 rounded-full animate-pulse" />}>
             <IconComponent {...props} />

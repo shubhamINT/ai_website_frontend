@@ -1,11 +1,24 @@
-
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction, ChatMessage } from '../../hooks/useAgentInteraction';
+import { useLocalParticipant } from '@livekit/components-react';
 import { BarVisualizer } from './BarVisualizer';
 import { Flashcard } from './Flashcard';
-import { EmailForm } from './EmailForm';
+import { ContactForm } from './ContactForm';
+import { ContactFormSubmit } from './ContactFormSubmit';
+import { StarterScreen } from './StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
+import dynamic from 'next/dynamic';
+
+const MapDisplay = dynamic(() => import('./MapDisplay').then(mod => mod.MapDisplay), { 
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
+});
+
+const GlobalPresenceMap = dynamic(() => import('./GlobalPresenceMap').then(mod => mod.GlobalPresenceMap), { 
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-900/50 backdrop-blur-md md:h-[450px]" />
+});
 
 interface AgentInterfaceProps {
     onDisconnect: () => void;
@@ -17,7 +30,6 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
 
     const processedText = useMemo(() => {
         if (!text) return null;
-        // If it's too long, only show the last sentence or last ~100 chars
         if (text.length > 120) {
             const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
             return sentences[sentences.length - 1].trim();
@@ -55,47 +67,70 @@ const SubtitleOverlay = ({ text, isInterim }: { text: string | null; isInterim: 
 const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     if (cards.length === 0) return null;
 
-    // Filter out cards without cardData
     const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
         card && card.cardData !== undefined && card.cardData.title !== undefined
     );
     if (validCards.length === 0) return null;
 
-    // Dynamic size based on total cards
-    const cardSize = useMemo(() => {
-        const count = validCards.length;
-        if (count === 1) return 'medium';
-        if (count <= 2) return 'medium';
-        if (count <= 4) return 'small';
-        return 'tiny';
-    }, [validCards.length]);
+    const count = validCards.length;
+    
+    let gridClasses = "grid gap-4 md:gap-6 w-full mx-auto ";
+    if (count === 1) {
+        gridClasses += "grid-cols-1 max-w-2xl";
+    } else if (count === 2) {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 max-w-5xl";
+    } else if (count === 3) {
+        gridClasses += "grid-cols-1 sm:grid-cols-3 max-w-7xl";
+    } else if (count === 4) {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl"; // 2x2 grid
+    } else {
+        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-[95vw] xl:max-w-screen-2xl";
+    }
 
     return (
-        <div className="relative flex w-full max-w-7xl flex-col items-center">
-            {/* Flex layout for symmetrical centering (3 above, 2 below etc) */}
+        <div className="relative flex w-full flex-col items-center">
             <motion.div
                 layout
-                className="relative z-10 flex w-full flex-wrap justify-center gap-3 px-2 md:px-6 md:gap-6"
+                className={`relative z-10 px-4 md:px-8 ${gridClasses}`}
             >
                 <AnimatePresence mode="popLayout">
-                    {validCards.map((card) => (
-                        <motion.div
-                            layout
-                            key={card.id}
-                            initial={{ opacity: 0, scale: 0.8, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            className="flex justify-center"
-                        >
-                            <Flashcard {...card.cardData} size={cardSize} />
-                        </motion.div>
-                    ))}
+                    {validCards.map((card, idx) => {
+                        let itemClass = "flex w-full h-full";
+                        
+                        // Determine internal Flashcard layout based on grid scenario
+                        let layoutProp: 'default' | 'horizontal' = 'default';
+                        if (count === 1) {
+                            layoutProp = 'horizontal'; 
+                        }
+
+                        // Smoother liquid animation flow without hardcoded delays
+                        return (
+                            <motion.div
+                                layout
+                                key={card.id}
+                                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                                animate={{ 
+                                    opacity: 1, y: 0, scale: 1,
+                                    transition: {
+                                        type: "spring", 
+                                        stiffness: 160, 
+                                        damping: 20, 
+                                        mass: 0.8
+                                    }
+                                }}
+                                exit={{ opacity: 0, scale: 0.85, y: -20, transition: { duration: 0.3, ease: "easeOut" } }}
+                                // Fluidly reposition remaining items when grid changes
+                                transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                                className={itemClass}
+                            >
+                                <Flashcard {...card.cardData} size="bento" layout={layoutProp} />
+                            </motion.div>
+                        );
+                    })}
                 </AnimatePresence>
             </motion.div>
 
-            {/* Optional card count indicator */}
-            {validCards.length > 3 && (
+            {validCards.length > 4 && (
                 <div className="mt-4 md:mt-6 flex items-center gap-2 rounded-full bg-white/40 px-3 py-1.5 md:px-4 md:py-2 backdrop-blur-xl ring-1 ring-black/5 shadow-lg">
                     <div className="flex gap-1 md:gap-1.5">
                         {validCards.slice(-5).map((_, idx) => (
@@ -131,29 +166,113 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
     const [isMuted, setIsMuted] = useState(false);
     const [isAgentMuted, setIsAgentMuted] = useState(false);
 
-    // Compute flashcards and latest agent message
     const flashcards = useMemo(() => {
         return messages.filter(m => m.type === 'flashcard');
     }, [messages]);
 
     const latestAgentMessage = useMemo(() => {
         const agentMsgs = messages.filter(m => m.sender === 'agent' && m.type === 'text');
-        // We want the very last one, even if interim
         return agentMsgs.length > 0 ? agentMsgs[agentMsgs.length - 1] : null;
     }, [messages]);
 
-    // [NEW] Check for email form message
-    const emailFormMessage = useMemo(() => {
-        const forms = messages.filter(m => m.type === 'email_form');
-        return forms.length > 0 ? forms[forms.length - 1] : null;
+    const latestVisualMessage = useMemo(() => {
+        // location_request is intentionally excluded — it's handled silently via useEffect
+        const visualMsgs = messages.filter(m => 
+            m.type === 'flashcard' || 
+            m.type === 'contact_form' || 
+            m.type === 'contact_form_submit' ||
+            m.type === 'map_polyline' ||
+            m.type === 'global_presence'
+        );
+        return visualMsgs.length > 0 ? visualMsgs[visualMsgs.length - 1] : null;
     }, [messages]);
 
-    // Handle Agent Muting
+    const locationRequestMessage = useMemo(() => {
+        const req = messages.filter(m => m.type === 'location_request');
+        return req.length > 0 ? req[req.length - 1] : null;
+    }, [messages]);
+
+    const contactFormMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'contact_form') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const contactFormSubmitMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'contact_form_submit') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const mapPolylineMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'map_polyline') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const globalPresenceMessage = useMemo(() => {
+        if (latestVisualMessage?.type === 'global_presence') {
+            return latestVisualMessage;
+        }
+        return null;
+    }, [latestVisualMessage]);
+
+    const { localParticipant } = useLocalParticipant();
+
     useEffect(() => {
         if (activeTrack?.publication?.track && 'setVolume' in activeTrack.publication.track) {
             (activeTrack.publication.track as any).setVolume(isAgentMuted ? 0 : 1);
         }
     }, [isAgentMuted, activeTrack]);
+
+    // ─── Location Request Handler ────────────────────────────────────────────
+    useEffect(() => {
+        if (!locationRequestMessage || !localParticipant) return;
+
+        const messageId = locationRequestMessage.id;
+        console.log('--- GEOLOCATION: Requesting user location ---', { messageId });
+
+        const publishLocation = (payload: object) => {
+            const encoded = new TextEncoder().encode(JSON.stringify(payload));
+            localParticipant.publishData(encoded, { topic: 'user.location' });
+            console.log('--- GEOLOCATION: Sent to backend ---', payload);
+        };
+
+        if (!navigator.geolocation) {
+            // Browser doesn't support geolocation at all
+            publishLocation({ status: 'unsupported' });
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                publishLocation({
+                    status: 'success',
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                });
+            },
+            (err) => {
+                // User denied or timed out
+                console.warn('--- GEOLOCATION: Error ---', err.message);
+                publishLocation({
+                    status: 'denied',
+                    error: err.message,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,      // 10s before giving up
+                maximumAge: 60000,   // Accept cached position up to 1 min old
+            }
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationRequestMessage?.id]); // Only re-fire when a NEW location request arrives
+    // ────────────────────────────────────────────────────────────────────────
 
     const handleSend = () => {
         if (!inputText.trim()) return;
@@ -175,49 +294,54 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl bg-transparent ring-1 ring-black/5 shadow-2xl">
-
-            {/* Audio Renderer */}
             <RoomAudioRenderer />
-
-            {/* Central Content (Card Display or Email Form) */}
             <div className="absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide">
-                {emailFormMessage && emailFormMessage.emailFormData ? (
+                {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
-                        <EmailForm data={emailFormMessage.emailFormData} />
+                        <ContactFormSubmit key={contactFormSubmitMessage.id} data={contactFormSubmitMessage.contactFormData} />
                     </div>
-                ) : (
+                ) : latestVisualMessage?.type === 'contact_form' && contactFormMessage?.contactFormData ? (
+                    <div className="flex w-full justify-center">
+                        <ContactForm key={contactFormMessage.id} data={contactFormMessage.contactFormData} />
+                    </div>
+                ) : latestVisualMessage?.type === 'map_polyline' && mapPolylineMessage?.mapPolylineData ? (
+                    <div className="flex w-full max-w-4xl justify-center">
+                        <MapDisplay 
+                            key={mapPolylineMessage.id} 
+                            polyline={mapPolylineMessage.mapPolylineData.polyline}
+                            origin={mapPolylineMessage.mapPolylineData.origin}
+                            destination={mapPolylineMessage.mapPolylineData.destination}
+                            travelMode={mapPolylineMessage.mapPolylineData.travelMode}
+                            distance={mapPolylineMessage.mapPolylineData.distance}
+                            duration={mapPolylineMessage.mapPolylineData.duration}
+                        />
+                    </div>
+                ) : latestVisualMessage?.type === 'global_presence' && globalPresenceMessage?.globalPresenceData ? (
+                    <div className="flex w-full max-w-5xl justify-center">
+                        <GlobalPresenceMap 
+                            key={globalPresenceMessage.id}
+                            data={globalPresenceMessage.globalPresenceData}
+                        />
+                    </div>
+                ) : flashcards.length > 0 ? (
                     <CardDisplay cards={flashcards} />
+                ) : (
+                    <StarterScreen 
+                        onSelectQuestion={sendText} 
+                        activeTrack={activeTrack} 
+                        userTrack={userTrack} 
+                    />
                 )}
-
-                {/* Empty State / Prompt if no card */}
-                {/* Empty State / Visualizer if no card */}
-                {/* flashcards.length === 0 && (
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="relative h-48 w-64 sm:h-64 sm:w-80 md:h-80 md:w-[400px]">
-                            <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} />
-                        </div>
-                    </div>
-                ) */}
             </div>
 
-            {/* Subtitles Overlay */}
-            <SubtitleOverlay
-                text={latestAgentMessage?.text || null}
-                isInterim={latestAgentMessage?.isInterim || false}
-            />
-
-            {/* Content Wrapper for Controls (Z-Index ensures it's on top) */}
             <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
-                {/* Bottom Control Bar */}
                 <div className="pointer-events-auto flex w-full justify-center p-4">
-                    <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/90 p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-zinc-200 backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)]">
+                    <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/80 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)]">
 
-                        {/* AI Mini Visualizer */}
                         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 sm:h-12 sm:w-20 flex items-center justify-center">
                             <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} mode="mini" />
                         </div>
 
-                        {/* Agent Mute Toggle (Speaker Icon) */}
                         <button
                             onClick={() => setIsAgentMuted(!isAgentMuted)}
                             className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300 sm:h-11 sm:w-11 ${isAgentMuted
@@ -240,7 +364,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             )}
                         </button>
 
-                        {/* Mic Toggle */}
                         <button
                             onClick={handleMicToggle}
                             className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300 sm:h-11 sm:w-11 ${mode === 'voice' && !isMuted
@@ -264,7 +387,6 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             )}
                         </button>
 
-                        {/* Input Field */}
                         <div className="relative flex min-w-0 flex-1 items-center group/input px-1 transition-all duration-300 sm:px-2">
                             <input
                                 type="text"
@@ -292,10 +414,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                             </button>
                         </div>
 
-                        {/* Separator */}
                         <div className="h-5 w-px shrink-0 bg-zinc-200 mx-0.5 sm:h-6 sm:mx-1"></div>
 
-                        {/* Stop / Disconnect */}
                         <button
                             onClick={onDisconnect}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-red-50 hover:text-red-500 sm:h-11 sm:w-11"

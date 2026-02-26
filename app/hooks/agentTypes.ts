@@ -3,9 +3,9 @@ export type InteractionMode = 'voice' | 'text';
 
 export interface FlashcardStyle {
     accentColor?: string;
-    icon?: string;
+    icon?: string | { type: 'static'; ref: string; fallback?: string };
     theme?: 'glass' | 'solid' | 'gradient' | 'neon' | 'highlight' | 'info' | 'light';
-    size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg';
+    size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg' | 'bento';
     layout?: 'default' | 'horizontal' | 'centered' | 'media-top';
     image?: {
         url: string;
@@ -25,21 +25,48 @@ export interface FlashcardStyle {
         query?: string;
         source?: 'unsplash' | 'pexels';
         aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
+        mediaType?: 'image' | 'video';
     };
 }
 
 
-export interface EmailFormData {
+
+export interface UserInfo {
+    user_name: string;
+    user_email: string;
+    user_phone: string;
+    user_id: string;
+}
+
+export interface ContactFormData {
     user_name?: string;
     user_email?: string;
-    email_subject?: string;
-    email_body?: string;
+    user_phone?: string;
+    contact_details?: string;
+}
+
+export interface LocationRequestData {
+    reason?: string; // e.g. "finding nearby offices" — shown to the user
+}
+
+export interface MapPolylineData {
+    polyline: string;
+    origin?: string;
+    destination?: string;
+    travelMode?: 'driving' | 'walking' | 'bicycling' | 'transit';
+    distance?: string;
+    duration?: string;
+}
+
+export interface GlobalPresenceData {
+    regions: Record<string, string>;
+    headquarters: Record<string, string>;
 }
 
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'email_form';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence';
     text?: string;
     cardData?: {
         title: string;
@@ -47,7 +74,10 @@ export interface ChatMessage {
         stream_id?: string;
         card_index?: number;
     } & FlashcardStyle;
-    emailFormData?: EmailFormData;
+    contactFormData?: ContactFormData;
+    locationRequestData?: LocationRequestData;
+    mapPolylineData?: MapPolylineData;
+    globalPresenceData?: GlobalPresenceData;
     isInterim?: boolean;
     timestamp: number;
 }
