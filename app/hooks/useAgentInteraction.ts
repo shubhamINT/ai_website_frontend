@@ -63,6 +63,7 @@ export function useAgentInteraction() {
         mode,
         setInteractionMode,
         messages,
+        updateMessages,
         activeTrack, // Agent audio
         userTrack,   // User mic
         toggleMic,

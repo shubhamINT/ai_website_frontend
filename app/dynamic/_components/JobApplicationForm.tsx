@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { JobApplicationData } from '../../hooks/agentTypes';
+import { JobApplicationData, ChatMessage } from '../../hooks/agentTypes';
 import { useLocalParticipant } from '@livekit/components-react';
 
 interface JobApplicationFormProps {
     data: JobApplicationData;
+    updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void;
 }
 
-export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ data }) => {
+export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ data, updateMessages }) => {
     const { localParticipant } = useLocalParticipant();
     const [formData, setFormData] = useState({
         user_name: data.user_name || '',
@@ -34,6 +35,31 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ data }) 
             const encoded = new TextEncoder().encode(JSON.stringify(payload));
             await localParticipant.publishData(encoded, { topic: 'ui.job_application' });
         }
+
+        // Locally update messages to show the confirmation UI immediately
+        const msgType = 'job_application_submit';
+        const id = `${msgType}-${Date.now()}`;
+
+        updateMessages((prev) => {
+            const next = new Map(prev);
+
+            // Clear previous previews
+            for (const [key, msg] of next.entries()) {
+                if (msg.type === 'job_application_preview') {
+                    next.delete(key);
+                }
+            }
+
+            next.set(id, {
+                id,
+                type: msgType,
+                sender: 'agent',
+                timestamp: Date.now(),
+                isInterim: false,
+                jobApplicationData: formData
+            });
+            return next;
+        });
     };
 
     return (

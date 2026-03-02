@@ -168,6 +168,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         mode,
         setInteractionMode,
         messages,
+        updateMessages,
         activeTrack,
         userTrack,
         toggleMic,
@@ -408,7 +409,11 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                     </div>
                 ) : latestVisualMessage?.type === 'job_application_preview' && jobApplicationPreviewMessage?.jobApplicationData ? (
                     <div className="flex w-full justify-center">
-                        <JobApplicationForm key={jobApplicationPreviewMessage.id} data={jobApplicationPreviewMessage.jobApplicationData} />
+                        <JobApplicationForm
+                            key={jobApplicationPreviewMessage.id}
+                            data={jobApplicationPreviewMessage.jobApplicationData}
+                            updateMessages={updateMessages}
+                        />
                     </div>
                 ) : flashcards.length > 0 ? (
                     <CardDisplay cards={flashcards} />
