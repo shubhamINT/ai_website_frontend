@@ -83,17 +83,17 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
 
     const count = validCards.length;
 
-    let gridClasses = "grid gap-4 md:gap-6 w-full mx-auto ";
+    let gridClasses = "grid w-full auto-rows-max items-start gap-4 md:gap-6 mx-auto ";
     if (count === 1) {
-        gridClasses += "grid-cols-1 max-w-2xl";
+        gridClasses += "grid-cols-1 max-w-[min(92vw,60rem)]";
     } else if (count === 2) {
-        gridClasses += "grid-cols-1 sm:grid-cols-2 max-w-5xl";
+        gridClasses += "grid-cols-1 md:grid-cols-2 max-w-5xl";
     } else if (count === 3) {
-        gridClasses += "grid-cols-1 sm:grid-cols-3 max-w-7xl";
+        gridClasses += "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-7xl";
     } else if (count === 4) {
-        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl"; // 2x2 grid
+        gridClasses += "grid-cols-1 md:grid-cols-2 max-w-5xl";
     } else {
-        gridClasses += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-[95vw] xl:max-w-screen-2xl";
+        gridClasses += "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-[95vw] xl:max-w-screen-2xl";
     }
 
     return (
@@ -103,12 +103,18 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                 className={`relative z-10 px-4 md:px-8 ${gridClasses}`}
             >
                 <AnimatePresence mode="popLayout">
-                    {validCards.map((card, idx) => {
-                        let itemClass = "flex w-full h-full";
+                    {validCards.map((card) => {
+                        const hasMedia = Boolean(
+                            card.cardData?.image?.url ||
+                            card.cardData?.dynamicMedia?.query ||
+                            (card.cardData?.dynamicMedia?.urls && card.cardData.dynamicMedia.urls.length > 0)
+                        );
+
+                        const itemClass = "flex w-full self-start items-start";
 
                         // Determine internal Flashcard layout based on grid scenario
                         let layoutProp: 'default' | 'horizontal' = 'default';
-                        if (count === 1) {
+                        if (count === 1 && hasMedia) {
                             layoutProp = 'horizontal';
                         }
 
