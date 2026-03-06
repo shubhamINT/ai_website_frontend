@@ -1,335 +1,159 @@
-# Docker Deployment Guide
+# AI Website Frontend
 
-This guide explains how to deploy the AI Website Frontend using Docker and Docker Compose.
+Next.js frontend for the AI-assisted website experience. The project is structured inside `app/` so routes, assistant UI, hooks, and shared helpers stay close to the App Router while still being split into maintainable modules.
 
-## 📋 Prerequisites
+## Architecture
 
-- Docker (version 20.10 or higher)
-- Docker Compose (version 2.0 or higher)
-- Access to your server with SSH
-- Domain configured (e.g., livekit-vyom.indusnettechnologies.com)
+### Runtime Flow
 
-## 🏗️ Project Structure
+1. `app/landing/page.tsx` renders the landing route.
+2. `app/dynamic/page.tsx` starts the active assistant experience.
+3. `app/hooks/useLiveKitConnection.ts` fetches the LiveKit token.
+4. `app/hooks/useAgentMessages.ts` listens for LiveKit transcription and data events.
+5. `app/hooks/_lib/parsers/message-factories.ts` converts raw payloads into typed UI messages.
+6. `app/dynamic/_components/shell/AgentVisualStage.tsx` selects the correct renderer.
+7. assistant UI is rendered from focused modules under `app/dynamic/_components/`.
 
-```
+### Folder Structure
+
+```text
 ai_website_frontend/
-├── Dockerfile                 # Multi-stage Docker build configuration
-├── docker-compose.yml         # Docker Compose orchestration
-├── .dockerignore             # Files to exclude from Docker build
-├── .env.production           # Production environment variables template
-└── next.config.ts            # Next.js config with standalone output
+├── app/
+│   ├── _shared/
+│   │   └── media/
+│   ├── api/
+│   │   └── health/
+│   ├── dynamic/
+│   │   ├── _components/
+│   │   │   ├── audio/
+│   │   │   ├── background/
+│   │   │   ├── cards/
+│   │   │   ├── forms/
+│   │   │   │   ├── contact/
+│   │   │   │   ├── job-application/
+│   │   │   │   └── meeting/
+│   │   │   ├── maps/
+│   │   │   ├── media/
+│   │   │   └── shell/
+│   │   └── page.tsx
+│   ├── hooks/
+│   │   ├── _lib/
+│   │   │   ├── livekit/
+│   │   │   ├── parsers/
+│   │   │   └── storage/
+│   │   ├── agentTypes.ts
+│   │   ├── topics.ts
+│   │   ├── useAgentInteraction.ts
+│   │   ├── useAgentMessages.ts
+│   │   ├── useAudioFFT.ts
+│   │   ├── useContextSync.ts
+│   │   ├── useInteractionControl.ts
+│   │   ├── useLiveKitConnection.ts
+│   │   └── useLocationPublishing.ts
+│   ├── landing/
+│   │   ├── _components/
+│   │   └── page.tsx
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── lib/
+│   └── pixabay/
+├── livekit_modular/            # isolated legacy / experimental flow
+├── docs/
+│   └── deployment.md
+└── Dockerfile
 ```
 
-## 🚀 Quick Start
+## Ownership Rules
 
-### 1. Configure Environment Variables
+### `app/dynamic/`
 
-Copy the production environment template and update with your values:
+Put route-specific assistant UI here.
+
+- `shell/` for orchestration components
+- `forms/` for business interaction views
+- `maps/` for map-heavy visual modules
+- `cards/` for flashcard rendering
+- `media/` and `audio/` for reusable assistant presentation pieces
+
+### `app/hooks/`
+
+Put active assistant runtime logic here.
+
+- stateful hooks stay at the top level
+- parser, storage, and publish helpers stay in `app/hooks/_lib/`
+- shared assistant types and topic constants stay in `app/hooks/agentTypes.ts` and `app/hooks/topics.ts`
+
+### `app/_shared/`
+
+Put code here only when it is reused across multiple routes like `landing` and `dynamic`.
+
+### `lib/`
+
+Put external API clients and integration-focused utilities here.
+
+## Assistant Contracts
+
+Topic constants live in `app/hooks/topics.ts`.
+
+Current handled topics:
+
+- `ui.flashcard`
+- `ui.text`
+- `user.details`
+- `ui.location_request`
+- `ui.contact_form`
+- `ui.meeting_form`
+- `ui.global_presense`
+- `ui.nearby_offices`
+- `ui.job_application`
+- `ui.context`
+- `user.context`
+- `user.location`
+- `lk.chat`
+
+When adding a new assistant UI message:
+
+1. define the payload shape in `app/hooks/agentTypes.ts`
+2. add message parsing in `app/hooks/_lib/parsers/`
+3. build the visual renderer in `app/dynamic/_components/`
+4. register the renderer in `app/dynamic/_components/shell/AgentVisualStage.tsx`
+
+## Storage Contract
+
+Persistent visitor identity is managed in `app/hooks/_lib/storage/userInfo.storage.ts`.
+
+- localStorage key: `user_info`
+- shape: `user_name`, `user_email`, `user_phone`, `user_id`
+- route components should not use raw `localStorage` directly for this contract
+
+## Development Rules
+
+- keep route files thin
+- keep parsing and transport logic out of render components
+- keep assistant topics centralized in `app/hooks/topics.ts`
+- keep shared code in `app/_shared/` only when it is reused across routes
+- keep `livekit_modular/` isolated unless there is an explicit merge decision
+
+## Commands
 
 ```bash
-cp .env.production .env
+pnpm dev
+pnpm build
+pnpm lint
+pnpm exec tsc --noEmit
 ```
 
-Edit `.env` with your production values:
-```env
-NEXT_PUBLIC_LIVEKIT_URL=wss://livekit-vyom.indusnettechnologies.com
-NEXT_PUBLIC_BACKEND_URL=https://api-livekit-vyom.indusnettechnologies.com
-NEXT_PUBLIC_PIXABAY_API_KEY=your_actual_api_key
-```
+## Verification
 
-### 2. Build and Run with Docker Compose
+Refactor verification completed with:
 
-```bash
-# Build the Docker image
-docker-compose build
+- `pnpm exec tsc --noEmit`
+- `pnpm build`
+- `pnpm exec eslint app lib`
 
-# Start the container
-docker-compose up -d
+Note: ESLint still reports a few non-blocking `@next/next/no-img-element` warnings in remote-media-driven components where direct image rendering is intentional for now.
 
-# View logs
-docker-compose logs -f frontend
-```
+## Deployment
 
-### 3. Verify Deployment
-
-Check if the container is running:
-```bash
-docker-compose ps
-```
-
-Test the application:
-```bash
-curl http://localhost:3000
-```
-
-## 🔧 Docker Commands Reference
-
-### Building
-
-```bash
-# Build the image
-docker-compose build
-
-# Build without cache
-docker-compose build --no-cache
-
-# Build with specific tag
-docker build -t ai-website-frontend:v1.0.0 .
-```
-
-### Running
-
-```bash
-# Start in detached mode
-docker-compose up -d
-
-# Start and view logs
-docker-compose up
-
-# Start specific service
-docker-compose up frontend
-```
-
-### Managing Containers
-
-```bash
-# Stop containers
-docker-compose down
-
-# Stop and remove volumes
-docker-compose down -v
-
-# Restart containers
-docker-compose restart
-
-# View running containers
-docker-compose ps
-
-# View logs
-docker-compose logs -f frontend
-```
-
-### Debugging
-
-```bash
-# Execute shell in running container
-docker-compose exec frontend sh
-
-# View container resource usage
-docker stats ai_website_frontend
-
-# Inspect container
-docker inspect ai_website_frontend
-```
-
-## 🌐 Production Deployment
-
-### Option 1: Using Docker Compose (Recommended)
-
-1. **Transfer files to server:**
-```bash
-# From your local machine
-scp -r . user@your-server:/path/to/deployment/
-```
-
-2. **On the server:**
-```bash
-cd /path/to/deployment/
-cp .env.production .env
-# Edit .env with production values
-nano .env
-
-# Build and start
-docker-compose up -d
-```
-
-### Option 2: Using Docker Registry
-
-1. **Build and tag the image:**
-```bash
-docker build -t your-registry/ai-website-frontend:latest .
-```
-
-2. **Push to registry:**
-```bash
-docker push your-registry/ai-website-frontend:latest
-```
-
-3. **Pull and run on server:**
-```bash
-docker pull your-registry/ai-website-frontend:latest
-docker-compose up -d
-```
-
-## 🔒 Reverse Proxy Configuration
-
-### Using Caddy (Recommended)
-
-Add to your `Caddyfile`:
-
-```caddy
-your-domain.com {
-    reverse_proxy localhost:3000
-    
-    # Optional: Enable compression
-    encode gzip
-    
-    # Optional: Add security headers
-    header {
-        Strict-Transport-Security "max-age=31536000;"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "no-referrer-when-downgrade"
-    }
-}
-```
-
-### Using Nginx
-
-Add to your nginx configuration:
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## 🔍 Health Checks
-
-The Docker Compose configuration includes a health check that pings `/api/health`. 
-
-To create this endpoint, add `app/api/health/route.ts`:
-
-```typescript
-export async function GET() {
-  return Response.json({ status: 'ok' }, { status: 200 });
-}
-```
-
-## 📊 Monitoring
-
-### View Container Logs
-```bash
-# All logs
-docker-compose logs -f
-
-# Last 100 lines
-docker-compose logs --tail=100 frontend
-
-# Logs since specific time
-docker-compose logs --since 30m frontend
-```
-
-### Resource Monitoring
-```bash
-# Real-time stats
-docker stats ai_website_frontend
-
-# Container processes
-docker-compose top
-```
-
-## 🛠️ Troubleshooting
-
-### Container won't start
-```bash
-# Check logs
-docker-compose logs frontend
-
-# Check if port is already in use
-sudo lsof -i :3000
-
-# Rebuild without cache
-docker-compose build --no-cache
-```
-
-### Environment variables not working
-```bash
-# Verify env vars in container
-docker-compose exec frontend env | grep NEXT_PUBLIC
-
-# Check .env file
-cat .env
-```
-
-### Image too large
-```bash
-# Check image size
-docker images | grep ai-website-frontend
-
-# The multi-stage build should keep it under 200MB
-# If larger, check .dockerignore is working
-```
-
-## 🔄 Updates and Rollbacks
-
-### Deploy New Version
-```bash
-# Pull latest code
-git pull origin main
-
-# Rebuild and restart
-docker-compose down
-docker-compose build
-docker-compose up -d
-```
-
-### Rollback
-```bash
-# Stop current version
-docker-compose down
-
-# Checkout previous version
-git checkout <previous-commit>
-
-# Rebuild and start
-docker-compose build
-docker-compose up -d
-```
-
-## 📝 Environment Variables Reference
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit WebSocket URL | `wss://livekit-vyom.indusnettechnologies.com` |
-| `NEXT_PUBLIC_BACKEND_URL` | Backend API URL | `https://api-livekit-vyom.indusnettechnologies.com` |
-| `NEXT_PUBLIC_PIXABAY_API_KEY` | Pixabay API key for images | `your_api_key_here` |
-| `NODE_ENV` | Node environment | `production` |
-
-## 🎯 Best Practices
-
-1. **Always use `.env` file** - Never hardcode secrets in docker-compose.yml
-2. **Use specific image tags** - Avoid `latest` in production
-3. **Enable health checks** - Monitor container health
-4. **Set resource limits** - Prevent container from consuming all resources
-5. **Use volumes for logs** - Persist logs outside container
-6. **Regular backups** - Backup your `.env` and configuration files
-7. **Monitor logs** - Set up log aggregation (ELK, Loki, etc.)
-8. **Security scanning** - Scan images for vulnerabilities
-
-## 📚 Additional Resources
-
-- [Next.js Docker Documentation](https://nextjs.org/docs/deployment#docker-image)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
-
-## 🆘 Support
-
-If you encounter issues:
-1. Check the logs: `docker-compose logs -f`
-2. Verify environment variables: `docker-compose exec frontend env`
-3. Check container status: `docker-compose ps`
-4. Review this guide's troubleshooting section
+Deployment instructions are documented in `docs/deployment.md`.

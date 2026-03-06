@@ -1,0 +1,136 @@
+"use client";
+
+import React, { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { LiveKitRoom } from "@livekit/components-react";
+import { useRouter } from "next/navigation";
+
+import { AgentInterface } from "@/app/dynamic/_components/shell/AgentInterface";
+import { ThreeBackground } from "@/app/dynamic/_components/background/ThreeBackground";
+import { useLiveKitConnection } from "@/app/hooks/useLiveKitConnection";
+
+const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
+
+export function DynamicPageScreen() {
+    const router = useRouter();
+    const { token, error, connect, disconnect } = useLiveKitConnection();
+
+    const handleDisconnect = () => {
+        disconnect();
+        router.push("/landing");
+    };
+
+    useEffect(() => {
+        void connect();
+
+        return () => {
+            disconnect();
+        };
+    }, [connect, disconnect]);
+
+    if (error) {
+        return (
+            <div className="flex h-screen flex-col items-center justify-center bg-[#FAFAFA] text-zinc-900">
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
+                    <h3 className="text-xl font-semibold text-red-500">Connection Failed</h3>
+                    <p className="mt-2 text-zinc-400">{error.message}</p>
+                    <button
+                        onClick={() => void connect()}
+                        className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-500"
+                    >
+                        Retry
+                    </button>
+                    <Link href="/landing" className="mt-4 block text-sm text-zinc-500 hover:text-zinc-300">
+                        Back to Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative flex h-screen w-full flex-col overflow-hidden bg-[#FAFAFA] font-sans text-zinc-900 selection:bg-blue-100 selection:text-blue-900">
+            <div className="pointer-events-none absolute inset-0 z-0">
+                <div className="absolute -top-[20%] left-1/2 h-[1000px] w-[1000px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(219,234,254,0.4)_0%,rgba(255,255,255,0)_70%)] opacity-60 blur-3xl" />
+                <div className="absolute top-[40%] -right-[10%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(224,231,255,0.3)_0%,rgba(255,255,255,0)_70%)] opacity-50 blur-3xl" />
+                <ThreeBackground />
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute left-6 top-6 z-50 md:left-8 md:top-8"
+            >
+                <Link
+                    href="/landing"
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.05] backdrop-blur-xl transition-all hover:scale-110 hover:shadow-[0_15px_45px_rgba(0,0,0,0.08)] active:scale-95 md:h-16 md:w-16"
+                >
+                    <Image
+                        src="/int-logo.svg"
+                        alt="Logo"
+                        width={40}
+                        height={40}
+                        className="h-auto w-8 object-contain md:w-11"
+                    />
+                </Link>
+            </motion.div>
+
+            <div className="relative z-10 flex h-[100dvh] w-full flex-col p-3 pt-6 md:p-6 lg:p-8">
+                <header className="mb-4 flex items-center justify-end sm:mb-6">
+                    <Link
+                        href="/landing"
+                        className="group flex items-center gap-2 rounded-full bg-zinc-100/80 py-2 pl-3 pr-4 text-xs font-medium text-zinc-600 backdrop-blur-sm transition-colors hover:bg-zinc-200 hover:text-zinc-900 sm:text-sm"
+                    >
+                        <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </Link>
+                </header>
+
+                <main className="flex flex-1 items-center justify-center">
+                    {!token ? (
+                        <div className="flex flex-col items-center gap-8 text-center">
+                            <div className="relative flex h-24 w-24 items-center justify-center">
+                                <div className="absolute inset-0 animate-ping rounded-full bg-blue-100 opacity-75" />
+                                <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-blue-600">
+                                    <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Initializing Agent</h1>
+                                <p className="mt-2 text-zinc-500">Connecting to secure session...</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-full w-full overflow-hidden rounded-3xl transition-opacity duration-1000">
+                            <LiveKitRoom
+                                token={token}
+                                serverUrl={LIVEKIT_URL}
+                                connect={true}
+                                video={false}
+                                audio={{
+                                    echoCancellation: true,
+                                    noiseSuppression: true,
+                                    autoGainControl: true,
+                                }}
+                                data-lk-theme="default"
+                                style={{ height: "100%" }}
+                                onDisconnected={handleDisconnect}
+                                onError={(roomError) => console.error("LiveKit Room Error:", roomError)}
+                            >
+                                <AgentInterface onDisconnect={handleDisconnect} />
+                            </LiveKitRoom>
+                        </div>
+                    )}
+                </main>
+            </div>
+        </div>
+    );
+}

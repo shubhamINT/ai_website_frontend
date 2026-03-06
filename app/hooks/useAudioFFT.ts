@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface AudioFFTOptions {
     fftSize?: number;
@@ -12,7 +12,7 @@ export const useAudioFFT = (track?: MediaStreamTrack | null, options: AudioFFTOp
         fftSize = 128,
         smoothingTimeConstant = 0.8,
         minVolumeThreshold = 10,
-        barCount
+        barCount,
     } = options;
 
     const [data, setData] = useState<Uint8Array | null>(null);
@@ -25,18 +25,21 @@ export const useAudioFFT = (track?: MediaStreamTrack | null, options: AudioFFTOp
 
     useEffect(() => {
         if (!track) {
-            setData(null);
-            setIsSpeaking(false);
-            return;
+            const resetHandle = requestAnimationFrame(() => {
+                setData(null);
+                setIsSpeaking(false);
+            });
+
+            return () => cancelAnimationFrame(resetHandle);
         }
 
         const setupAudio = async () => {
             try {
-                if (audioContextRef.current?.state !== 'closed') {
+                if (audioContextRef.current?.state !== "closed") {
                     audioContextRef.current?.close();
                 }
 
-                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const ctx = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
                 audioContextRef.current = ctx;
 
                 const analyser = ctx.createAnalyser();
@@ -52,27 +55,30 @@ export const useAudioFFT = (track?: MediaStreamTrack | null, options: AudioFFTOp
                 const dataArray = new Uint8Array(bufferLength);
 
                 const update = () => {
-                    if (!analyserRef.current) return;
+                    if (!analyserRef.current) {
+                        return;
+                    }
 
                     analyserRef.current.getByteFrequencyData(dataArray);
 
-                    // Calculate volume
                     let sum = 0;
-                    // Focus on lower frequencies for voice volume
                     const range = Math.min(dataArray.length, 32);
-                    for (let i = 0; i < range; i++) {
-                        sum += dataArray[i];
-                    }
-                    const avgVol = sum / range;
-                    setIsSpeaking(avgVol > minVolumeThreshold);
 
-                    // Handle sampling if barCount is provided
+                    for (let index = 0; index < range; index += 1) {
+                        sum += dataArray[index];
+                    }
+
+                    const averageVolume = sum / range;
+                    setIsSpeaking(averageVolume > minVolumeThreshold);
+
                     if (barCount) {
                         const sampled = new Uint8Array(barCount);
-                        for (let i = 0; i < barCount; i++) {
-                            const binIndex = Math.floor(i * (range / barCount));
-                            sampled[i] = dataArray[binIndex];
+
+                        for (let index = 0; index < barCount; index += 1) {
+                            const binIndex = Math.floor(index * (range / barCount));
+                            sampled[index] = dataArray[binIndex];
                         }
+
                         setData(sampled);
                     } else {
                         setData(new Uint8Array(dataArray));
@@ -82,18 +88,27 @@ export const useAudioFFT = (track?: MediaStreamTrack | null, options: AudioFFTOp
                 };
 
                 update();
-            } catch (err) {
-                console.error("Error setting up audio FFT:", err);
+            } catch (error) {
+                console.error("Error setting up audio FFT:", error);
             }
         };
 
-        setupAudio();
+        void setupAudio();
 
         return () => {
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
-            if (sourceRef.current) sourceRef.current.disconnect();
-            if (analyserRef.current) analyserRef.current.disconnect();
-            if (audioContextRef.current?.state !== 'closed') {
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+            }
+
+            if (sourceRef.current) {
+                sourceRef.current.disconnect();
+            }
+
+            if (analyserRef.current) {
+                analyserRef.current.disconnect();
+            }
+
+            if (audioContextRef.current?.state !== "closed") {
                 audioContextRef.current?.close();
             }
         };

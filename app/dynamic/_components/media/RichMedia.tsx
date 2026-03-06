@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DynamicImage } from './DynamicImage';
+import Image from 'next/image';
+
+import { DynamicImage } from '@/app/_shared/media/DynamicImage';
 
 interface RichMediaProps {
     urls?: string[];
@@ -10,7 +12,7 @@ interface RichMediaProps {
     source?: 'unsplash' | 'pexels' | 'pixabay';
     aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
     alt?: string;
-    mediaType?: 'image' | 'video' | 'youtube' | 'vimeo'; // Explicit override
+    mediaType?: 'image' | 'video' | 'youtube' | 'vimeo';
 }
 
 type MediaType = 'image' | 'video' | 'youtube' | 'vimeo' | 'unknown';
@@ -21,14 +23,14 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     source,
     aspectRatio = 'video',
     alt = 'Media content',
-    mediaType: explicitMediaType
+    mediaType: explicitMediaType,
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const isMuted = true;
-
+    const [failedUrls, setFailedUrls] = useState<Record<string, true>>({});
     const safeUrls = Array.isArray(urls) ? urls : (typeof urls === 'string' ? [urls] : []);
     const firstUrl = safeUrls[0] ?? '';
+    const getFallbackUrl = (label: string) => `https://placehold.co/1200x900/f4f4f5/71717a?text=${encodeURIComponent(label || 'Visual')}`;
 
     useEffect(() => {
         const resetTimer = window.setTimeout(() => {
@@ -46,15 +48,24 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         };
     }, [safeUrls.length, firstUrl, query]);
 
-    // Helpers to detect media type
-    const getMediaType = (url: string): MediaType => {
-        if (explicitMediaType) return explicitMediaType; // Use explicit type if provided
-        if (!url) return 'unknown';
-        const u = url.toLowerCase();
+    useEffect(() => {
+        const resetFailuresTimer = window.setTimeout(() => {
+            setFailedUrls({});
+        }, 0);
 
-        if (u.match(/\.(mp4|webm|ogg|mov|m4v)$/) || u.includes('cloudinary.com/video/upload') || u.includes('stream')) return 'video';
-        if (u.includes('youtube.com') || u.includes('youtu.be') || u.includes('youtube-nocookie.com')) return 'youtube';
-        if (u.includes('vimeo.com')) return 'vimeo';
+        return () => {
+            window.clearTimeout(resetFailuresTimer);
+        };
+    }, [safeUrls.length, firstUrl, query]);
+
+    const getMediaType = (url: string): MediaType => {
+        if (explicitMediaType) return explicitMediaType;
+        if (!url) return 'unknown';
+        const normalizedUrl = url.toLowerCase();
+
+        if (normalizedUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/) || normalizedUrl.includes('cloudinary.com/video/upload') || normalizedUrl.includes('stream')) return 'video';
+        if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be') || normalizedUrl.includes('youtube-nocookie.com')) return 'youtube';
+        if (normalizedUrl.includes('vimeo.com')) return 'vimeo';
 
         return 'image';
     };
@@ -62,7 +73,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     const getYoutubeId = (url: string) => {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
         const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
+        return match && match[2].length === 11 ? match[2] : null;
     };
 
     const getVimeoId = (url: string) => {
@@ -73,7 +84,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     const renderSingleMedia = (url: string, type: MediaType, index: number) => {
         const frameClasses = 'relative z-10 h-full w-full';
         const imageFrameClasses = 'relative z-10 flex h-full w-full items-center justify-center p-4 md:p-5';
-        const imageClasses = 'h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.02]';
+        const imageClasses = 'object-contain transition-transform duration-700 group-hover:scale-[1.02]';
+        const imageSrc = failedUrls[url] ? getFallbackUrl(alt) : url;
 
         if (type === 'video') {
             return (
@@ -81,7 +93,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                     <video
                         src={url}
                         autoPlay
-                        muted={isMuted}
+                        muted={true}
                         loop
                         playsInline
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
@@ -97,7 +109,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                 <div className={frameClasses}>
                     <iframe
                         src={`https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&rel=0`}
-                        className="h-full w-full pointer-events-none border-0"
+                        className="pointer-events-none h-full w-full border-0"
                         allow="autoplay; encrypted-media"
                         onLoad={() => setIsLoading(false)}
                     />
@@ -111,7 +123,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                 <div className={frameClasses}>
                     <iframe
                         src={`https://player.vimeo.com/video/${id}?autoplay=1&muted=1&background=1&loop=1`}
-                        className="h-full w-full pointer-events-none border-0"
+                        className="pointer-events-none h-full w-full border-0"
                         allow="autoplay; fullscreen"
                         onLoad={() => setIsLoading(false)}
                     />
@@ -122,22 +134,28 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         return (
             <>
                 <div className="absolute inset-0 scale-110 opacity-30">
-                    <img
-                        src={url}
+                    <Image
+                        src={imageSrc}
                         alt=""
                         aria-hidden="true"
-                        className="h-full w-full object-cover blur-2xl saturate-[1.15]"
+                        fill
+                        unoptimized
+                        sizes="100vw"
+                        className="object-cover blur-2xl saturate-[1.15]"
                     />
                 </div>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.34),rgba(255,255,255,0)_58%),linear-gradient(180deg,rgba(255,255,255,0.28),rgba(255,255,255,0.04))]" />
                 <div className={imageFrameClasses}>
-                    <img
-                        src={url}
+                    <Image
+                        src={imageSrc}
                         alt={`${alt} ${index + 1}`}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 80vw"
                         className={imageClasses}
                         onLoad={() => setIsLoading(false)}
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://placehold.co/1200x900/f4f4f5/71717a?text=${encodeURIComponent(alt || 'Visual')}`;
+                        onError={() => {
+                            setFailedUrls((prev) => ({ ...prev, [url]: true }));
                             setIsLoading(false);
                         }}
                     />
@@ -150,26 +168,25 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         auto: 'aspect-auto',
         video: 'aspect-video',
         square: 'aspect-square',
-        portrait: 'aspect-[3/4]'
+        portrait: 'aspect-[3/4]',
     };
 
     const containerClasses = `group relative isolate w-full overflow-hidden rounded-[1.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,244,245,0.94))] ring-1 ring-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_35px_rgba(0,0,0,0.08)] transition-all duration-500 md:rounded-[1.45rem] ${ratioMap[aspectRatio]}`;
     const autoRatioFallback = aspectRatio === 'auto' ? 'min-h-[220px] md:min-h-[260px]' : '';
 
-    // Priority 1: Direct URLs
-    if (safeUrls && safeUrls.length > 0) {
+    if (safeUrls.length > 0) {
         const currentUrl = safeUrls[currentIndex] ?? safeUrls[0];
         const mediaType = getMediaType(currentUrl);
 
         return (
-            <div className="flex flex-col gap-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <div className="flex w-full flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
                 <div className={containerClasses}>
                     {isLoading && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/35 backdrop-blur-sm">
                             <div className="flex space-x-2">
-                                <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
                             </div>
                         </div>
                     )}
@@ -191,10 +208,10 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                         {(mediaType === 'video' || mediaType === 'youtube' || mediaType === 'vimeo') && (
                             <div className="flex items-center gap-1.5 rounded-full bg-black/65 px-2.5 py-1 text-white shadow-lg backdrop-blur-md">
                                 <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
                                 </span>
-                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Video</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">Video</span>
                             </div>
                         )}
                         {safeUrls.length > 1 && (
@@ -208,11 +225,11 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                         <>
                             <div className="absolute inset-y-0 left-0 right-0 z-30 flex items-center justify-between px-3 opacity-100 transition-all duration-300 md:opacity-0 md:group-hover:opacity-100">
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
+                                    onClick={(event) => {
+                                        event.preventDefault();
                                         setCurrentIndex((prev) => (prev - 1 + safeUrls.length) % safeUrls.length);
                                     }}
-                                    className="rounded-full bg-white/92 p-2 text-zinc-900 shadow-xl backdrop-blur-xl ring-1 ring-black/5 transition hover:bg-white hover:scale-105 active:scale-95 md:p-2.5"
+                                    className="rounded-full bg-white/92 p-2 text-zinc-900 shadow-xl ring-1 ring-black/5 backdrop-blur-xl transition hover:scale-105 hover:bg-white active:scale-95 md:p-2.5"
                                     aria-label="Previous visual"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,11 +237,11 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                                     </svg>
                                 </button>
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
+                                    onClick={(event) => {
+                                        event.preventDefault();
                                         setCurrentIndex((prev) => (prev + 1) % safeUrls.length);
                                     }}
-                                    className="rounded-full bg-white/92 p-2 text-zinc-900 shadow-xl backdrop-blur-xl ring-1 ring-black/5 transition hover:bg-white hover:scale-105 active:scale-95 md:p-2.5"
+                                    className="rounded-full bg-white/92 p-2 text-zinc-900 shadow-xl ring-1 ring-black/5 backdrop-blur-xl transition hover:scale-105 hover:bg-white active:scale-95 md:p-2.5"
                                     aria-label="Next visual"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,12 +251,12 @@ export const RichMedia: React.FC<RichMediaProps> = ({
                             </div>
 
                             <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/25 p-1.5 backdrop-blur-sm">
-                                {safeUrls.map((_, i) => (
+                                {safeUrls.map((_, index) => (
                                     <button
-                                        key={i}
-                                        onClick={() => setCurrentIndex(i)}
-                                        aria-label={`Show visual ${i + 1}`}
-                                        className={`h-1.5 transition-all duration-500 rounded-full ${i === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`}
+                                        key={index}
+                                        onClick={() => setCurrentIndex(index)}
+                                        aria-label={`Show visual ${index + 1}`}
+                                        className={`h-1.5 rounded-full transition-all duration-500 ${index === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`}
                                     />
                                 ))}
                             </div>
@@ -252,7 +269,6 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         );
     }
 
-    // Priority 2: Dynamic Search Fallback
     if (query) {
         return (
             <div className={`${containerClasses} ${autoRatioFallback}`}>
@@ -270,7 +286,7 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         <div className={`${containerClasses} ${autoRatioFallback}`}>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.7),rgba(255,255,255,0)_55%),linear-gradient(135deg,rgba(59,130,246,0.08),rgba(161,161,170,0.03)_55%,rgba(255,255,255,0.4))]" />
             <div className="relative z-10 flex h-full min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 text-center md:min-h-[260px]">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 text-zinc-500 ring-1 ring-black/5 shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 text-zinc-500 shadow-sm ring-1 ring-black/5">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
                         <path d="M4.5 5.25A2.25 2.25 0 0 1 6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25Zm2.53 11.72a.75.75 0 0 0 1.04 0l2.4-2.31a1.5 1.5 0 0 1 2.06-.02l1.95 1.83a.75.75 0 0 0 1.03-.01l1.94-1.88a.75.75 0 1 0-1.04-1.08l-1.42 1.38-1.44-1.35a3 3 0 0 0-4.12.04l-1.88 1.81a.75.75 0 0 0 0 1.59ZM8.625 9.75a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
                     </svg>

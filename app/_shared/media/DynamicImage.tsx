@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { searchPixabayImages } from '@/lib/pixabay';
+
+import { searchPixabayImages } from '@/lib/pixabay/client';
 
 interface DynamicImageProps {
     query?: string;
@@ -19,7 +20,7 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
     alt,
     className,
     width = 800,
-    height = 600
+    height = 600,
 }) => {
     const [imageUrl, setImageUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
@@ -56,26 +57,23 @@ export const DynamicImage: React.FC<DynamicImageProps> = ({
                 console.error('Pixabay API error:', err);
                 setImageUrl(`https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=90&w=${requestWidth}&auto=format&fit=max`);
             } finally {
-
                 setIsLoading(false);
             }
         };
 
-        fetchPixabayImage();
+        void fetchPixabayImage();
     }, [query, source, requestWidth, alt]);
 
     const displayUrl = error ? fallbackUrl : imageUrl;
 
     return (
-        <div
-            className={`relative h-full w-full overflow-hidden bg-zinc-100 ${className || ''}`}
-        >
+        <div className={`relative h-full w-full overflow-hidden bg-zinc-100 ${className || ''}`}>
             {isLoading && (
-                <div className="absolute inset-0 z-10 bg-zinc-100/50 backdrop-blur-sm flex items-center justify-center">
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-100/50 backdrop-blur-sm">
                     <div className="flex space-x-2">
-                        <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
                     </div>
                 </div>
             )}

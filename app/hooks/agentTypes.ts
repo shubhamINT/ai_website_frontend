@@ -1,35 +1,32 @@
-export type AgentState = 'listening' | 'speaking' | 'thinking' | 'idle';
-export type InteractionMode = 'voice' | 'text';
+export type AgentState = "listening" | "speaking" | "thinking" | "idle";
+export type InteractionMode = "voice" | "text";
 
 export interface FlashcardStyle {
     accentColor?: string;
-    icon?: string | { type: 'static'; ref: string; fallback?: string };
-    theme?: 'glass' | 'solid' | 'gradient' | 'neon' | 'highlight' | 'info' | 'light';
-    size?: 'tiny' | 'extra-small' | 'small' | 'medium' | 'large' | 'sm' | 'md' | 'lg' | 'bento';
-    layout?: 'default' | 'horizontal' | 'centered' | 'media-top';
+    icon?: string | { type: "static"; ref: string; fallback?: string };
+    theme?: "glass" | "solid" | "gradient" | "neon" | "highlight" | "info" | "light";
+    size?: "tiny" | "extra-small" | "small" | "medium" | "large" | "sm" | "md" | "lg" | "bento";
+    layout?: "default" | "horizontal" | "centered" | "media-top";
     image?: {
         url: string;
         alt: string;
         aspectRatio?: string;
     };
-    // [NEW] Dynamic UI Extensions
-    visual_intent?: 'neutral' | 'urgent' | 'success' | 'warning' | 'processing' | 'cyberpunk';
-    animation_style?: 'slide' | 'pop' | 'fade' | 'flip' | 'scale';
+    visual_intent?: "neutral" | "urgent" | "success" | "warning" | "processing" | "cyberpunk";
+    animation_style?: "slide" | "pop" | "fade" | "flip" | "scale";
     smartIcon?: {
-        type: 'animated' | 'static';
-        ref: string; // e.g. "shield-check" (Lucide) or "lottie-shield" (slug)
+        type: "animated" | "static";
+        ref: string;
         fallback?: string;
     };
     dynamicMedia?: {
         urls?: string[];
         query?: string;
-        source?: 'unsplash' | 'pexels';
-        aspectRatio?: 'auto' | 'video' | 'square' | 'portrait';
-        mediaType?: 'image' | 'video';
+        source?: "unsplash" | "pexels";
+        aspectRatio?: "auto" | "video" | "square" | "portrait";
+        mediaType?: "image" | "video";
     };
 }
-
-
 
 export interface UserInfo {
     user_name: string;
@@ -50,7 +47,7 @@ export interface JobApplicationData {
     user_email?: string;
     user_phone?: string;
     job_details?: string;
-    resume?: string; // Base64 or URL
+    resume?: string;
     github?: string;
     linkedin?: string;
     portfolio?: string;
@@ -73,14 +70,14 @@ export interface MeetingInviteSubmitData {
 }
 
 export interface LocationRequestData {
-    reason?: string; // e.g. "finding nearby offices" — shown to the user
+    reason?: string;
 }
 
 export interface MapPolylineData {
     polyline: string;
     origin?: string;
     destination?: string;
-    travelMode?: 'driving' | 'walking' | 'bicycling' | 'transit';
+    travelMode?: "driving" | "walking" | "bicycling" | "transit";
     distance?: string;
     duration?: string;
 }
@@ -103,8 +100,20 @@ export interface NearbyOfficesData {
 
 export interface ChatMessage {
     id: string;
-    sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices' | 'job_application_preview' | 'job_application_submit' | 'meeting_form' | 'meeting_form_submit';
+    sender: "user" | "agent";
+    type:
+        | "text"
+        | "flashcard"
+        | "contact_form"
+        | "contact_form_submit"
+        | "location_request"
+        | "map_polyline"
+        | "global_presence"
+        | "nearby_offices"
+        | "job_application_preview"
+        | "job_application_submit"
+        | "meeting_form"
+        | "meeting_form_submit";
     text?: string;
     cardData?: {
         title: string;
