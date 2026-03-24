@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, type Variants } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, type Variants, useReducedMotion } from 'framer-motion';
 import { FlashcardStyle, FlashcardMedia } from '../../hooks/agentTypes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -16,6 +16,7 @@ interface FlashcardProps {
     // Layout is passed by AgentInterface based on grid context — NOT from backend
     layout?: 'default' | 'horizontal' | 'centered';
     layoutId?: string;
+    shouldStreamText?: boolean;
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
@@ -90,6 +91,7 @@ export const Flashcard = React.memo(({
     card_index = 0,
     layout = 'default',
     layoutId,
+    shouldStreamText = false,
 }: FullFlashcardProps) => {
 
     // Derive accent color purely from visual_intent
@@ -101,11 +103,92 @@ export const Flashcard = React.memo(({
     const themeClass = isNeon
         ? `bg-zinc-900 text-white shadow-[0_0_30px_rgba(0,0,0,0.5)] ring-1 ring-${colorKey}-500/50`
         : 'bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-white/60';
+    const prefersReducedMotion = useReducedMotion();
+    const hasStreamedOnceRef = useRef(false);
+    const [displayLength, setDisplayLength] = useState(0);
+    const [isStreaming, setIsStreaming] = useState(false);
 
     // Media
     const hasMedia = Boolean(media?.query || (media?.urls && media.urls.length > 0));
     const showHorizontalMedia = layout === 'horizontal' && hasMedia;
     const showStackedMedia    = layout !== 'horizontal'  && hasMedia;
+
+    const safeValue = value ?? '';
+
+    useEffect(() => {
+        if (!safeValue) {
+            setDisplayLength(0);
+            setIsStreaming(false);
+            return;
+        }
+
+        const shouldAnimate =
+            shouldStreamText &&
+            !prefersReducedMotion &&
+            !hasStreamedOnceRef.current;
+
+        if (!shouldAnimate) {
+            setDisplayLength(safeValue.length);
+            setIsStreaming(false);
+            return;
+        }
+
+        setDisplayLength(0);
+        setIsStreaming(true);
+        hasStreamedOnceRef.current = true;
+
+        let cancelled = false;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const totalLength = safeValue.length;
+
+        // Balanced cadence: small chunks for short text, larger chunks for long text.
+        const getStep = (remaining: number) => {
+            if (totalLength > 1200) return Math.max(5, Math.ceil(remaining / 28));
+            if (totalLength > 700) return Math.max(4, Math.ceil(remaining / 24));
+            if (totalLength > 350) return Math.max(3, Math.ceil(remaining / 20));
+            if (totalLength > 140) return Math.max(2, Math.ceil(remaining / 18));
+            return 1;
+        };
+
+        const getDelay = () => {
+            if (totalLength > 1200) return 16;
+            if (totalLength > 700) return 18;
+            if (totalLength > 350) return 22;
+            if (totalLength > 140) return 26;
+            return 30;
+        };
+
+        const streamStep = (currentLength: number) => {
+            if (cancelled) return;
+            const remaining = totalLength - currentLength;
+            if (remaining <= 0) {
+                setIsStreaming(false);
+                return;
+            }
+
+            const nextLength = Math.min(totalLength, currentLength + getStep(remaining));
+            setDisplayLength(nextLength);
+
+            if (nextLength >= totalLength) {
+                setIsStreaming(false);
+                return;
+            }
+
+            timeoutId = setTimeout(() => streamStep(nextLength), getDelay());
+        };
+
+        timeoutId = setTimeout(() => streamStep(0), 120);
+
+        return () => {
+            cancelled = true;
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }, [safeValue, shouldStreamText, prefersReducedMotion]);
+
+    const visibleText = useMemo(
+        () => safeValue.slice(0, displayLength),
+        [safeValue, displayLength]
+    );
 
     const renderContent = (text: string) => {
         if (!text) return null;
@@ -218,7 +301,13 @@ export const Flashcard = React.memo(({
 
                     {/* Body text */}
                     <div className={`mt-3 text-sm ${isNeon ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                        {renderContent(value)}
+                        {renderContent(visibleText)}
+                        {isStreaming && (
+                            <span
+                                aria-hidden="true"
+                                className="ml-1 inline-block h-3 w-[2px] animate-pulse rounded-full bg-current align-middle opacity-50"
+                            />
+                        )}
                     </div>
                 </div>
             </div>
