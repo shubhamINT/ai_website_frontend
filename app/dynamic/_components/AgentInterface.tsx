@@ -81,6 +81,7 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
     );
     if (validCards.length === 0) return null;
 
+    const latestFlashcardId = validCards[validCards.length - 1].id;
     const count = validCards.length;
 
     let gridClasses = "grid w-full auto-rows-max items-start gap-4 md:gap-6 mx-auto ";
@@ -142,6 +143,7 @@ const CardDisplay = ({ cards }: { cards: ChatMessage[] }) => {
                                     layout={layoutProp}
                                     card_index={card.cardData?.card_index ?? 0}
                                     layoutId={card.id}
+                                    shouldStreamText={card.id === latestFlashcardId}
                                 />
                             </motion.div>
                         );
