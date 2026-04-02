@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, type Variants, useReducedMotion } from 'framer-motion';
-import { FlashcardStyle, FlashcardMedia } from '../../hooks/agentTypes';
+import { motion, useReducedMotion } from 'framer-motion';
+import { FlashcardStyle, FlashcardMedia } from '../../../hooks/agentTypes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { SmartIcon } from './SmartIcon';
-import { RichMedia } from './RichMedia';
+import { SmartIcon } from '../shared/SmartIcon';
+import { RichMedia } from '../media/RichMedia';
+import { INTENT_COLOR_MAP, COLOR_PALETTE } from './flashcardThemes';
+import { cardVariants } from './flashcardAnimations';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -20,65 +22,6 @@ interface FlashcardProps {
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
-
-// ─── Color System ──────────────────────────────────────────────────────────
-// Derived purely from visual_intent — never sent by backend
-
-const INTENT_COLOR_MAP: Record<string, string> = {
-    urgent:     'rose',
-    warning:    'amber',
-    success:    'emerald',
-    processing: 'blue',
-    cyberpunk:  'violet',
-    neutral:    'zinc',
-};
-
-type CardColors = {
-    bg: string; text: string; ring: string; glow: string; gradient: string;
-};
-
-const COLOR_PALETTE: Record<string, CardColors> = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-100', glow: 'bg-emerald-500/10', gradient: 'from-emerald-500 to-emerald-600' },
-    blue:    { bg: 'bg-blue-50',    text: 'text-blue-600',    ring: 'ring-blue-100',    glow: 'bg-blue-500/10',    gradient: 'from-blue-500 to-blue-600'    },
-    amber:   { bg: 'bg-amber-50',   text: 'text-amber-600',   ring: 'ring-amber-100',   glow: 'bg-amber-500/10',   gradient: 'from-amber-500 to-amber-600'   },
-    rose:    { bg: 'bg-rose-50',    text: 'text-rose-600',    ring: 'ring-rose-100',    glow: 'bg-rose-500/10',    gradient: 'from-rose-500 to-rose-600'    },
-    violet:  { bg: 'bg-violet-50',  text: 'text-violet-600',  ring: 'ring-violet-100',  glow: 'bg-violet-500/10',  gradient: 'from-violet-500 to-violet-600'  },
-    zinc:    { bg: 'bg-zinc-50',    text: 'text-zinc-600',    ring: 'ring-zinc-100',    glow: 'bg-zinc-500/10',    gradient: 'from-zinc-500 to-zinc-600'    },
-};
-
-// ─── Animation System ────────────────────────────────────────────────────────
-// Purely frontend-controlled. Cards flow in sequentially with a staggered
-// spring entrance. Each card uses the same smooth spring so the set feels
-// like a single cohesive wave rather than independent elements.
-
-const cardVariants: Variants = {
-    hidden: {
-        opacity: 0,
-        y: 24,
-        scale: 0.97,
-        filter: 'blur(6px)',
-    },
-    visible: (index: number) => ({
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        filter: 'blur(0px)',
-        transition: {
-            type: 'spring',
-            stiffness: 280,
-            damping: 28,
-            mass: 0.9,
-            delay: index * 0.07, // stagger: each card follows the previous by 70ms
-        },
-    }),
-    exit: {
-        opacity: 0,
-        y: -12,
-        scale: 0.96,
-        filter: 'blur(4px)',
-        transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
-    },
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -106,7 +49,6 @@ export const Flashcard = React.memo(({
     const prefersReducedMotion = useReducedMotion();
     const hasStreamedOnceRef = useRef(false);
     const [displayLength, setDisplayLength] = useState(0);
-    const [isStreaming, setIsStreaming] = useState(false);
 
     // Media
     const hasMedia = Boolean(media?.query || (media?.urls && media.urls.length > 0));
@@ -118,7 +60,6 @@ export const Flashcard = React.memo(({
     useEffect(() => {
         if (!safeValue) {
             setDisplayLength(0);
-            setIsStreaming(false);
             return;
         }
 
@@ -129,19 +70,22 @@ export const Flashcard = React.memo(({
 
         if (!shouldAnimate) {
             setDisplayLength(safeValue.length);
-            setIsStreaming(false);
             return;
         }
 
         setDisplayLength(0);
-        setIsStreaming(true);
         hasStreamedOnceRef.current = true;
 
         let cancelled = false;
         let timeoutId: ReturnType<typeof setTimeout> | undefined;
         const totalLength = safeValue.length;
 
-        // Balanced cadence: small chunks for short text, larger chunks for long text.
+        const delay =
+            totalLength > 1200 ? 16 :
+            totalLength > 700  ? 18 :
+            totalLength > 350  ? 22 :
+            totalLength > 140  ? 26 : 30;
+
         const getStep = (remaining: number) => {
             if (totalLength > 1200) return Math.max(5, Math.ceil(remaining / 28));
             if (totalLength > 700) return Math.max(4, Math.ceil(remaining / 24));
@@ -150,31 +94,17 @@ export const Flashcard = React.memo(({
             return 1;
         };
 
-        const getDelay = () => {
-            if (totalLength > 1200) return 16;
-            if (totalLength > 700) return 18;
-            if (totalLength > 350) return 22;
-            if (totalLength > 140) return 26;
-            return 30;
-        };
-
         const streamStep = (currentLength: number) => {
             if (cancelled) return;
             const remaining = totalLength - currentLength;
-            if (remaining <= 0) {
-                setIsStreaming(false);
-                return;
-            }
+            if (remaining <= 0) return;
 
             const nextLength = Math.min(totalLength, currentLength + getStep(remaining));
             setDisplayLength(nextLength);
 
-            if (nextLength >= totalLength) {
-                setIsStreaming(false);
-                return;
+            if (nextLength < totalLength) {
+                timeoutId = setTimeout(() => streamStep(nextLength), delay);
             }
-
-            timeoutId = setTimeout(() => streamStep(nextLength), getDelay());
         };
 
         timeoutId = setTimeout(() => streamStep(0), 120);
@@ -194,7 +124,7 @@ export const Flashcard = React.memo(({
         if (!text) return null;
         return (
             <div className={`
-                markdown-render 
+                markdown-render
                 ${isNeon ? 'prose-invert text-zinc-300' : 'text-zinc-600'}
                 prose prose-sm max-w-none
                 prose-p:leading-relaxed prose-p:my-1
@@ -302,7 +232,7 @@ export const Flashcard = React.memo(({
                     {/* Body text */}
                     <div className={`mt-3 text-sm ${isNeon ? 'text-zinc-300' : 'text-zinc-600'}`}>
                         {renderContent(visibleText)}
-                        {isStreaming && (
+                        {displayLength > 0 && displayLength < safeValue.length && (
                             <span
                                 aria-hidden="true"
                                 className="ml-1 inline-block h-3 w-[2px] animate-pulse rounded-full bg-current align-middle opacity-50"
