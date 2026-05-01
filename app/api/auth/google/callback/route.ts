@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(new URL("/landing", request.url));
   response.cookies.set("auth_session", sessionValue, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge,
   });
