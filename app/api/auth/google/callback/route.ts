@@ -6,8 +6,10 @@ export async function GET(request: Request) {
   const role = url.searchParams.get("role") as "admin" | "client" | null;
   const expiresAt = url.searchParams.get("expires_at");
 
+  const appUrl = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
   if (!token || !role) {
-    return NextResponse.redirect(new URL("/login?error=oauth_failed", request.url));
+    return NextResponse.redirect(`${appUrl}/login?error=oauth_failed`);
   }
 
   const expiresAtMs =
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
       ? Math.floor((expiresAtMs - Date.now()) / 1000)
       : 4 * 60 * 60;
 
-  const response = NextResponse.redirect(new URL("/landing", request.url));
+  const response = NextResponse.redirect(`${appUrl}/landing`);
   response.cookies.set("auth_session", sessionValue, {
     httpOnly: true,
     sameSite: "lax",
