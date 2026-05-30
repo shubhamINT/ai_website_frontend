@@ -30,17 +30,21 @@ mirrors that: one folder per experience, plus a shared folder for everything com
 ```
 app/
 ├── dynamic/            # ① IMMERSIVE experience (full-window AI) — "Talk to our website"
-│   ├── page.tsx
-│   └── _components/    #    immersive-only UI (agent, forms, maps, flashcard)
+│   ├── page.tsx        #    full-screen page chrome; mounts LiveKitRoom + <AgentInterface>
+│   └── _components/    #    immersive-only chrome (ThreeBackground)
 │
 ├── vani/               # ② CHAT-WINDOW experience — "Try Vani Today"
-│   ├── page.tsx
-│   └── _components/    #    vani-only UI (added in a later step)
+│   ├── page.tsx        #    static page; mounts <VaniChatWindow />
+│   └── _components/    #    vani-only UI (VaniChatWindow: launcher + panel)
 │
 ├── _shared/            # ③ SHARED — used by BOTH experiences
 │   ├── hooks/          #    the AI engine: LiveKit connection, agent messages, send
 │   ├── types/          #    shared TypeScript types (agentTypes.ts)
-│   └── ui/             #    shared presentational components (CTAButton, PageBackground)
+│   ├── ui/             #    shared presentational components (CTAButton, PageBackground)
+│   └── components/     #    the shared agent rendering layer (used by both experiences):
+│                       #      agent/      AgentInterface (variant: 'immersive' | 'window')
+│                       #      forms/ maps/ flashcard/ media/
+│                       #      primitives/ SmartIcon, StarterScreen, BarVisualizer, …
 │
 ├── landing/page.tsx    # post-login page with the two CTA buttons
 ├── login/page.tsx
@@ -49,9 +53,10 @@ app/
 
 **Rules of thumb**
 - UI used by only one experience → that experience's `_components/`.
-- Anything used by both (logic, types, generic UI) → `_shared/`.
-- `_shared/hooks` is the single source of AI logic — both experiences render
-  different *views* over the same hooks, so there is no duplicated logic.
+- Anything used by both (logic, types, generic UI, agent rendering) → `_shared/`.
+- `_shared/hooks` is the single source of AI logic and `_shared/components` the single
+  source of agent UI — both experiences render the same `<AgentInterface>` (full-window
+  in `/dynamic`, in a panel in `/vani` via `variant="window"`), so there is no duplication.
 - Import shared code from other folders with the `@/app/_shared/...` alias
   (configured in `tsconfig.json`). *Within* `_shared/` itself, sibling files use
   relative imports (e.g. `../types/agentTypes`).

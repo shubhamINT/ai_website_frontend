@@ -1,16 +1,19 @@
 "use client";
 
 /**
- * Vani — chat-window experience (placeholder).
+ * Vani — chat-window experience.
  *
- * Step 1: intentionally blank. The reusable AI chat window will be mounted here
- * in a later step (see plan). `/dynamic` keeps the immersive experience unchanged.
+ * A static page (hero + copy) with a floating chat window. The window
+ * (<VaniChatWindow />) mounts the shared agent engine + UI from
+ * @/app/_shared/components, sized to a panel instead of full screen.
+ * /dynamic keeps the immersive full-window experience.
  */
 
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { PageBackground } from "@/app/_shared/ui/PageBackground";
+import { VaniChatWindow } from "./_components/VaniChatWindow";
 
 export default function VaniPage() {
     return (
@@ -36,23 +39,36 @@ export default function VaniPage() {
             </Link>
 
             <main className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 px-6 text-center">
-                <motion.h1
+                <motion.span
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-blue-600 ring-1 ring-blue-100"
+                >
+                    Try Vani
+                </motion.span>
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                     className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl"
                 >
-                    Vani
+                    Meet Vani, your AI assistant
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     className="max-w-xl text-lg font-light leading-relaxed text-slate-500"
                 >
-                    Coming soon.
+                    Ask anything by voice or text. Tap the chat button in the corner to start
+                    a conversation — Vani can show locations, book meetings, and more, right
+                    inside the window.
                 </motion.p>
             </main>
+
+            {/* Floating chat window — the Vani experience */}
+            <VaniChatWindow />
         </div>
     );
 }

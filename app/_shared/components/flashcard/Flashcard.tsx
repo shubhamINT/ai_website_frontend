@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { FlashcardStyle, FlashcardMedia } from '@/app/_shared/types/agentTypes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { SmartIcon } from '../shared/SmartIcon';
+import { SmartIcon } from '../primitives/SmartIcon';
 import { RichMedia } from '../media/RichMedia';
 import { INTENT_COLOR_MAP, COLOR_PALETTE } from './flashcardThemes';
 import { cardVariants } from './flashcardAnimations';

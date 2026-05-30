@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { NearbyOfficesData } from '@/app/_shared/types/agentTypes';
-import { SmartIcon } from '../shared/SmartIcon';
+import { SmartIcon } from '../primitives/SmartIcon';
 
 interface NearbyOfficesProps {
     data: NearbyOfficesData;

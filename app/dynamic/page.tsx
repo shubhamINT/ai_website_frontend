@@ -7,8 +7,8 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useLiveKitConnection } from "@/app/_shared/hooks/useLiveKitConnection";
-import { AgentInterface } from "./_components/agent/AgentInterface";
-import { ThreeBackground } from "./_components/shared/ThreeBackground";
+import { AgentInterface } from "@/app/_shared/components/agent/AgentInterface";
+import { ThreeBackground } from "./_components/ThreeBackground";
 
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 

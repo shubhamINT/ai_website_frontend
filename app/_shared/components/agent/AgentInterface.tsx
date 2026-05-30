@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgentInteraction } from '@/app/_shared/hooks/useAgentInteraction';
 import { useLocalParticipant } from '@livekit/components-react';
-import { BarVisualizer } from '../shared/BarVisualizer';
+import { BarVisualizer } from '../primitives/BarVisualizer';
 import { ContactForm } from '../forms/ContactForm';
 import { ContactFormSubmit } from '../forms/ContactFormSubmit';
 import { JobApplicationForm } from '../forms/JobApplicationForm';   
 import { JobApplicationSubmit } from '../forms/JobApplicationSubmit';
 import { MeetingForm } from '../forms/MeetingForm';
 import { MeetingFormSubmit } from '../forms/MeetingFormSubmit';
-import { StarterScreen } from '../shared/StarterScreen';
+import { StarterScreen } from '../primitives/StarterScreen';
 import { RoomAudioRenderer } from '@livekit/components-react';
 import dynamic from 'next/dynamic';
 import { CardDisplay } from './CardDisplay';
@@ -33,9 +33,15 @@ const NearbyOffices = dynamic<any>(() => import('../maps/NearbyOffices').then(mo
 
 interface AgentInterfaceProps {
     onDisconnect: () => void;
+    /**
+     * 'immersive' — full-window experience (/dynamic). Default.
+     * 'window'    — compact, tightened spacing for the Vani chat window.
+     */
+    variant?: 'immersive' | 'window';
 }
 
-export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) => {
+export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, variant = 'immersive' }) => {
+    const isWindow = variant === 'window';
     const {
         agentState,
         mode,
@@ -131,6 +137,12 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
         }
     };
 
+    const canvasClassName = [
+        'absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden z-0 scrollbar-hide transition-all duration-500',
+        isWindow ? 'p-4 pt-14 pb-28' : 'p-4 pt-20 pb-40 md:justify-center md:p-12 md:pb-32',
+        agentState === 'thinking' ? 'blur-sm scale-95 opacity-50' : 'blur-0 scale-100 opacity-100',
+    ].join(' ');
+
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl bg-transparent ring-1 ring-black/5 shadow-2xl">
             <RoomAudioRenderer />
@@ -168,7 +180,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 )}
             </AnimatePresence>
 
-            <div className={`absolute inset-0 flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden p-4 pt-20 z-0 pb-40 md:justify-center md:p-12 md:pb-32 scrollbar-hide transition-all duration-500 ${agentState === 'thinking' ? 'blur-sm scale-95 opacity-50' : 'blur-0 scale-100 opacity-100'}`}>
+            <div className={canvasClassName}>
                 {latestVisualMessage?.type === 'contact_form_submit' && contactFormSubmitMessage?.contactFormData ? (
                     <div className="flex w-full justify-center">
                         <ContactFormSubmit key={contactFormSubmitMessage.id} data={contactFormSubmitMessage.contactFormData} />
@@ -235,8 +247,8 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect }) 
                 )}
             </div>
 
-            <div className="relative z-30 mb-8 flex flex-col justify-end flex-1 pointer-events-none">
-                <div className="pointer-events-auto flex w-full justify-center p-4">
+            <div className={`relative z-30 flex flex-col justify-end flex-1 pointer-events-none ${isWindow ? 'mb-2' : 'mb-8'}`}>
+                <div className={`pointer-events-auto flex w-full justify-center ${isWindow ? 'p-2' : 'p-4'}`}>
                     <div className="flex w-full items-center gap-1.5 rounded-[32px] bg-white/80 p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3 hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)]">
 
                         <div className="relative h-10 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 sm:h-12 sm:w-20 flex items-center justify-center">

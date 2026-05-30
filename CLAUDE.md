@@ -62,23 +62,30 @@ Split between Next.js (UI + cookie) and a FastAPI backend (credential check + JW
 
 ```
 app/
-├── dynamic/   route  — immersive experience + its own _components/ (agent, forms, maps, flashcard)
-├── vani/      route  — chat-window experience (its UI goes in vani/_components/)
+├── dynamic/   route  — immersive page chrome; mounts LiveKitRoom + <AgentInterface>.
+│                       _components/ holds only dynamic-specific chrome (ThreeBackground).
+├── vani/      route  — static page; mounts <VaniChatWindow> (launcher + panel) from
+│                       vani/_components/. The panel mounts the same <AgentInterface>.
 ├── landing/   route  — post-login page with the two CTA buttons
 ├── login/     route
 ├── api/       route handlers (auth, health)
 └── _shared/   NOT a route — code used by both experiences
-    ├── hooks/  the AI engine (LiveKit connection, messages, interaction, context sync)
-    ├── types/  agentTypes.ts
-    └── ui/     CTAButton, PageBackground
+    ├── hooks/       the AI engine (LiveKit connection, messages, interaction, context sync)
+    ├── types/       agentTypes.ts
+    ├── ui/          CTAButton, PageBackground
+    └── components/  the shared agent rendering layer:
+        ├── agent/        AgentInterface (prop `variant: 'immersive' | 'window'`), CardDisplay, …
+        ├── forms/ maps/ flashcard/ media/
+        └── primitives/   SmartIcon, StarterScreen, BarVisualizer, useAudioFFT, DynamicImage
 ```
 
 Conventions:
 - **Routes stay flat under `app/`** — Next.js maps folder → URL. Never move
   `login`/`landing`/`api` into `_shared`.
 - UI used by **one** experience → that experience's `_components/`. Used by **both**
-  → `_shared/`. (E.g. `useAudioFFT` lives in `dynamic/_components/shared/` because
-  only `BarVisualizer` uses it.)
+  → `_shared/`. The agent rendering layer (`AgentInterface` and its tree) lives in
+  `_shared/components/` because both `/dynamic` and `/vani` render it; `/vani` passes
+  `variant="window"` to tighten spacing for the chat panel.
 - The `_` prefix marks a folder as non-route (Next.js ignores it for routing).
 - Import shared code from other folders via the `@/*` alias (maps to repo root,
   so `@/app/_shared/...`, `@/lib/...`). *Within* `_shared/`, siblings use relative

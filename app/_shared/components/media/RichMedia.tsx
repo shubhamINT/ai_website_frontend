@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DynamicImage } from '../shared/DynamicImage';
+import { DynamicImage } from '../primitives/DynamicImage';
 import {
     MediaType,
     detectMediaType,
