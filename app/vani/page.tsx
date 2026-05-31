@@ -4,14 +4,14 @@
  * Vani — chat-window experience.
  *
  * Static INT Global hero (video background, navbar, client logo marquee) with a
- * floating voice-bot launcher. The launcher (<VaniChatWindow />) mounts the shared
- * agent engine + UI from @/app/_shared/components, sized to a panel.
+ * floating voice-bot launcher. The launcher is the SAME public/widget.js that
+ * external sites embed (it iframes /embed) — mounted here via <VaniWidget />.
  * /dynamic keeps the immersive full-window experience.
  */
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { VaniChatWindow } from "./_components/VaniChatWindow";
+import { VaniWidget } from "./_components/VaniWidget";
 
 // Background video. Change YT_VIDEO_ID to swap the clip.
 // NOTE: a YouTube embed always carries some player chrome; we hide it with
@@ -162,8 +162,8 @@ export default function VaniPage() {
                 </div>
             </div>
 
-            {/* Floating voice-bot launcher — the Vani experience */}
-            <VaniChatWindow />
+            {/* Floating voice-bot launcher — the same widget external sites embed */}
+            <VaniWidget />
         </div>
     );
 }

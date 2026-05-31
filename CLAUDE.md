@@ -23,11 +23,14 @@ A Next.js 16 (app router, React 19, Tailwind v4, TypeScript) frontend for an
 AI website. The product has **two AI experiences that share one engine**:
 
 - **`/dynamic`** — the *immersive* full-window experience ("Talk to our website").
-- **`/vani`** — the *chat-window* experience ("Try Vani Today"). Currently a blank
-  placeholder; the chat window is built in a later step.
+- **`/vani`** — the *chat-window* experience ("Try Vani Today"). An INT hero page
+  that drops the **same `public/widget.js`** external sites embed (it iframes
+  `/embed`) — so `/vani` and customers' sites show the identical widget.
+- **`/embed`** — the single widget surface the loader iframes; renders the chat-window
+  UI (`ChatWindowShell` → `AgentInterface variant="window"`).
 
-Both render different *views* over the same real-time agent logic, which lives in
-`app/_shared/`. Do not duplicate that logic per experience.
+`/dynamic` renders the agent directly; `/vani` and external sites reach it through
+the widget. The real-time agent logic lives in `app/_shared/` — do not duplicate it.
 
 ### Real-time agent (LiveKit)
 
@@ -64,12 +67,16 @@ Split between Next.js (UI + cookie) and a FastAPI backend (credential check + JW
 app/
 ├── dynamic/   route  — immersive page chrome; mounts LiveKitRoom + <AgentInterface>.
 │                       _components/ holds only dynamic-specific chrome (ThreeBackground).
-├── vani/      route  — static page; mounts <VaniChatWindow> (launcher + panel) from
-│                       vani/_components/. The panel mounts the same <AgentInterface>.
+├── vani/      route  — INT hero page; drops the same widget external sites use via
+│                       vani/_components/VaniWidget (loads /widget.js → iframes /embed).
+├── embed/     route  — the single widget surface the loader iframes. page.tsx owns the
+│                       LiveKit lifecycle + iframe postMessage; _components/ChatWindowShell
+│                       is the chat-window UI (mounts <AgentInterface variant="window">).
+│                       layout.tsx forces a transparent background.
 ├── landing/   route  — post-login page with the two CTA buttons
 ├── login/     route
 ├── api/       route handlers (auth, health)
-└── _shared/   NOT a route — code used by both experiences
+└── _shared/   NOT a route — code used by more than one route
     ├── hooks/       the AI engine (LiveKit connection, messages, interaction, context sync)
     ├── types/       agentTypes.ts
     ├── ui/          CTAButton, PageBackground
@@ -79,13 +86,16 @@ app/
         └── primitives/   SmartIcon, StarterScreen, BarVisualizer, useAudioFFT, DynamicImage
 ```
 
+`public/widget.js` is the loader — the one file external sites (and `/vani`) reference;
+it iframes `/embed`. See README "Embedding Vani".
+
 Conventions:
 - **Routes stay flat under `app/`** — Next.js maps folder → URL. Never move
   `login`/`landing`/`api` into `_shared`.
-- UI used by **one** experience → that experience's `_components/`. Used by **both**
-  → `_shared/`. The agent rendering layer (`AgentInterface` and its tree) lives in
-  `_shared/components/` because both `/dynamic` and `/vani` render it; `/vani` passes
-  `variant="window"` to tighten spacing for the chat panel.
+- UI used by **one** route → that route's `_components/` (e.g. `ChatWindowShell` is
+  embed-only). Used by **more than one** → `_shared/`. The agent rendering layer
+  (`AgentInterface` and its tree) lives in `_shared/components/` because both `/dynamic`
+  and `/embed` render it; `/embed` passes `variant="window"` to tighten spacing.
 - The `_` prefix marks a folder as non-route (Next.js ignores it for routing).
 - Import shared code from other folders via the `@/*` alias (maps to repo root,
   so `@/app/_shared/...`, `@/lib/...`). *Within* `_shared/`, siblings use relative

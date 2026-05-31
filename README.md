@@ -34,11 +34,12 @@ app/
 │   └── _components/    #    immersive-only chrome (ThreeBackground)
 │
 ├── vani/               # ② CHAT-WINDOW experience — "Try Vani Today"
-│   ├── page.tsx        #    static page; mounts <VaniChatWindow />
-│   └── _components/    #    vani-only UI (VaniChatWindow: launcher + panel)
+│   ├── page.tsx        #    INT hero page; drops the SAME widget.js external sites use
+│   └── _components/    #    VaniWidget.tsx (loads /widget.js, manual mount/destroy)
 │
-├── embed/              # ③ EMBEDDABLE widget — Vani for ANY third-party website
-│   ├── page.tsx        #    launcher orb ↔ slide drawer; runs inside the loader's iframe
+├── embed/              # ③ EMBEDDABLE widget — Vani for ANY site (incl. our /vani)
+│   ├── page.tsx        #    launcher orb ↔ popup card; runs inside the loader's iframe
+│   ├── _components/    #    ChatWindowShell.tsx (the whole widget UI)
 │   └── layout.tsx      #    forces a transparent background for the iframe
 │
 ├── _shared/            # ④ SHARED — used by ALL of the above
@@ -64,8 +65,10 @@ public/
 - UI used by only one experience → that experience's `_components/`.
 - Anything used by both (logic, types, generic UI, agent rendering) → `_shared/`.
 - `_shared/hooks` is the single source of AI logic and `_shared/components` the single
-  source of agent UI — both experiences render the same `<AgentInterface>` (full-window
-  in `/dynamic`, in a panel in `/vani` via `variant="window"`), so there is no duplication.
+  source of agent UI — every experience renders the same `<AgentInterface>` (full-window
+  in `/dynamic`; in a popup card in `/embed` via `variant="window"`). `/vani` doesn't
+  render the agent itself: it loads `widget.js` → iframes `/embed`, exactly like an
+  external site. One widget, one loader, no duplication.
 - Import shared code from other folders with the `@/app/_shared/...` alias
   (configured in `tsconfig.json`). *Within* `_shared/` itself, sibling files use
   relative imports (e.g. `../types/agentTypes`).
@@ -107,18 +110,19 @@ drawer with full voice + visual Vani. Optional override:
   styles and scripts cannot reach in; Vani's cannot leak out. Zero collision.
 - **`widget.js` adds exactly one DOM node** (the iframe) and no global CSS.
 - The iframe **resizes itself** by posting `{ type: 'vani:resize', mode, width }`
-  to the loader: a small bottom-right box when collapsed, a right-docked drawer
-  (420px, or 720px expanded) on desktop, full-screen on mobile. On desktop the
-  rest of the host page stays clickable — the drawer overlays, it does **not**
-  push the host's layout.
+  to the loader: a small bottom-right box when collapsed, a bottom-right popup card
+  (400px, or 720px expanded) on desktop, full-screen on mobile. The loader also
+  posts `{ type: 'vani:host', isMobile }` back so the iframe picks card-vs-fullscreen
+  off the real host viewport (its own CSS `sm:` breakpoint can't see past the iframe).
+  On desktop the rest of the host page stays clickable — only the corner is covered.
 - **Mic** works because the iframe is granted `allow="microphone"`. The host page
   must be served over **HTTPS** for the browser to honor it.
 
 ### One engine, two views
 
-The widget is not a separate AI — it renders the same shared engine as `/dynamic`
-and `/vani`. `<AgentInterface>` owns the LiveKit room and composes two views that
-**always travel together**:
+The widget is not a separate AI — it renders the same shared engine as `/dynamic`.
+(`/vani` shows this very widget, loaded through `widget.js`.) `<AgentInterface>` owns
+the LiveKit room and composes two views that **always travel together**:
 
 - **`Canvas`** — the visual board: flashcards, maps, forms, the idle starter screen.
 - **`VoiceDock`** — the control bar: voice visualizer, mic toggle, text input.
