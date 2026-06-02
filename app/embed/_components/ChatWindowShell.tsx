@@ -140,8 +140,17 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                             top scrim keeps the controls legible as content slides under it. */}
                         <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between bg-gradient-to-b from-white/85 via-white/45 to-transparent px-4 pb-6 pt-3">
                             <div className="pointer-events-auto flex items-center gap-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(37,99,235,0.35)]">V</span>
-                                <span className="text-sm font-semibold text-zinc-900">Vani</span>
+                                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(37,99,235,0.35)]">
+                                    V
+                                    {/* online status dot */}
+                                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                                </span>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-sm font-semibold text-zinc-900">Vani</span>
+                                    <span className="text-[10px] font-medium tracking-wide text-zinc-400">
+                                        Powered by <span className="font-semibold text-zinc-600">INT</span>
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="pointer-events-auto flex items-center gap-1">
