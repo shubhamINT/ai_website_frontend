@@ -58,7 +58,8 @@ app/
 
 public/
 ├── widget.js           # the embed LOADER — the one file customers reference
-└── embed-demo.html     # a pretend third-party page for testing the embed locally
+├── embed-demo.html     # a pretend third-party page for testing the embed locally
+└── int-logo.svg        # INT Global logo asset
 ```
 
 **Rules of thumb**
@@ -84,8 +85,9 @@ customer's site — with a single line, without touching their HTML, CSS, or JS.
 <script src="https://YOUR-VANI-HOST/widget.js" async></script>
 ```
 
-That's it. A launcher orb appears bottom-right. Clicking it slides in a chat
-drawer with full voice + visual Vani. Optional override:
+That's it. A deep-navy glass launcher orb (with a living iridescent core) appears
+bottom-right; a greeting card slides in on hover. Clicking it opens a chat card
+with full voice + visual Vani. Optional override:
 
 ```html
 <!-- serve /embed from a different host than the script itself -->
@@ -129,6 +131,20 @@ the LiveKit room and composes two views that **always travel together**:
 
 Both read the same message stream; neither works alone. The split is for clarity
 and reuse, not for shipping one without the other.
+
+**Window-only open state (`variant="window"`).** The embed/`/vani` chat card tightens
+the layout into one continuous surface (no header seam) and adds three behaviors the
+immersive `/dynamic` view does not use:
+
+- **Live transcript** — the welcome greeting is swapped for Vani's speech, typed out
+  with a streaming caret as she talks.
+- **Swipeable starter strip** — starter questions move to the bottom as a swipe strip
+  (click to send) instead of a centered list.
+- **Swipe deck** — agent flashcards render as a left-to-right `SwipeDeck` (drag + arrows
+  + dots) instead of a vertical grid.
+
+`SwipeDeck` lives in `_shared/components/primitives/`. All of this is gated on
+`variant === 'window'`, so `/dynamic` is unchanged.
 
 ### Test it locally
 
