@@ -84,7 +84,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                 </svg>
                             </span>
                             <span className="flex flex-col leading-tight">
-                                <span className="text-[15px] font-bold text-slate-900">Hi, I&apos;m Vaani</span>
+                                <span className="text-[15px] font-bold text-slate-900">Hi, I&apos;m Vani</span>
                                 <span className="text-xs font-medium text-blue-600">Your INT AI assistant</span>
                             </span>
                         </span>
@@ -131,19 +131,20 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                         // mobile: solid full-screen sheet; desktop: frosted-glass card,
                         // bottom-right, wider when expanded. Glass = translucent white so
                         // the host page tints through the (transparent) iframe.
-                        className={`fixed z-50 flex flex-col overflow-hidden ${isMobile
-                            ? "inset-0 bg-white shadow-2xl ring-1 ring-black/10"
-                            : `bottom-6 right-6 h-[720px] max-h-[calc(100dvh-3rem)] rounded-[28px] bg-white/75 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_28px_80px_-12px_rgba(15,23,42,0.28)] ${isExpanded ? "w-[860px]" : "w-[480px]"}`
-                            }`}
+                        className={isMobile
+                            ? "fixed z-50 flex flex-col overflow-hidden inset-0 bg-white shadow-2xl ring-1 ring-black/10"
+                            : `fixed z-50 flex flex-col overflow-hidden bottom-6 right-6 h-[720px] max-h-[calc(100dvh-3rem)] rounded-[28px] bg-white/75 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_28px_80px_-12px_rgba(15,23,42,0.28)] ${isExpanded ? "w-[860px]" : "w-[480px]"}`
+                        }
                     >
-                        {/* Header */}
-                        <div className={`flex shrink-0 items-center justify-between px-4 py-3 ${isMobile ? "border-b border-zinc-100" : "border-b border-white/50"}`}>
-                            <div className="flex items-center gap-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">V</span>
+                        {/* Header — floats over one continuous surface (no divider). A soft
+                            top scrim keeps the controls legible as content slides under it. */}
+                        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between bg-gradient-to-b from-white/85 via-white/45 to-transparent px-4 pb-6 pt-3">
+                            <div className="pointer-events-auto flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(37,99,235,0.35)]">V</span>
                                 <span className="text-sm font-semibold text-zinc-900">Vani</span>
                             </div>
 
-                            <div className="flex items-center gap-1">
+                            <div className="pointer-events-auto flex items-center gap-1">
                                 {/* Expand / shrink — wider card for rich visuals (desktop only) */}
                                 {onToggleExpand && (
                                     <button
@@ -175,8 +176,8 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                             </div>
                         </div>
 
-                        {/* Body — connection states */}
-                        <div className={`relative flex-1 overflow-hidden ${isMobile ? "bg-[#FAFAFA]" : "bg-white/25"}`}>
+                        {/* Body — one continuous surface; the floating header overlays its top. */}
+                        <div className="relative flex-1 overflow-hidden">
                             {error ? (
                                 <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
                                     <p className="text-sm font-medium text-red-500">Connection failed</p>

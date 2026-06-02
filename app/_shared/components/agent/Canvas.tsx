@@ -1,6 +1,5 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
-import type { TrackReferenceOrPlaceholder } from '@livekit/components-react';
 import type { ChatMessage } from '../../types/agentTypes';
 import type { VisualMessageFilters } from './useVisualMessageFilters';
 import { ContactForm } from '../forms/ContactForm';
@@ -38,8 +37,11 @@ interface CanvasProps {
     variant: 'immersive' | 'window';
     /** Lets interactive cards (job form) write back into the message map. */
     updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void;
-    activeTrack: TrackReferenceOrPlaceholder | undefined;
-    userTrack: TrackReferenceOrPlaceholder | undefined;
+    /** Send a starter question to the agent (wired to the idle StarterScreen). */
+    sendText: (text: string) => void;
+    /** Latest agent spoken text — shown centered on the welcome screen as Vani speaks. */
+    agentText?: string | null;
+    isAgentInterim?: boolean;
 }
 
 /**
@@ -56,8 +58,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     agentState,
     variant,
     updateMessages,
-    activeTrack,
-    userTrack,
+    sendText,
+    agentText,
+    isAgentInterim,
 }) => {
     const isWindow = variant === 'window';
 
@@ -161,9 +164,14 @@ export const Canvas: React.FC<CanvasProps> = ({
     return (
         <div className={className}>
             {renderVisual() || (flashcards.length > 0 ? (
-                <CardDisplay cards={flashcards} />
+                <CardDisplay cards={flashcards} variant={variant} />
             ) : (
-                <StarterScreen activeTrack={activeTrack} userTrack={userTrack} />
+                <StarterScreen
+                    variant={variant}
+                    onQuestionClick={sendText}
+                    agentText={agentText}
+                    isAgentInterim={isAgentInterim}
+                />
             ))}
         </div>
     );
