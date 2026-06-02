@@ -2,12 +2,15 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ChatMessage } from '@/app/_shared/types/agentTypes';
 import { Flashcard } from '../flashcard/Flashcard';
+import { SwipeDeck } from '../primitives/SwipeDeck';
 
 interface CardDisplayProps {
     cards: ChatMessage[];
+    /** 'window' shows multiple cards as a swipeable deck instead of a grid. */
+    variant?: 'immersive' | 'window';
 }
 
-export const CardDisplay = ({ cards }: CardDisplayProps) => {
+export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) => {
     if (cards.length === 0) return null;
 
     const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
@@ -17,6 +20,33 @@ export const CardDisplay = ({ cards }: CardDisplayProps) => {
 
     const latestFlashcardId = validCards[validCards.length - 1].id;
     const count = validCards.length;
+
+    // Widget: more than one card → swipeable Tinder-style deck (no scrollbar).
+    if (variant === 'window' && count > 1) {
+        return (
+            <div className="relative flex w-full flex-col items-center">
+                <SwipeDeck mode="deck" showDots className="z-10 max-w-[min(92vw,30rem)]">
+                    {validCards.map((card) => (
+                        <motion.div
+                            key={card.id}
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+                            className="flex w-full items-start"
+                        >
+                            <Flashcard
+                                {...card.cardData}
+                                layout="default"
+                                card_index={card.cardData?.card_index ?? 0}
+                                layoutId={card.id}
+                                shouldStreamText={card.id === latestFlashcardId}
+                            />
+                        </motion.div>
+                    ))}
+                </SwipeDeck>
+            </div>
+        );
+    }
 
     let gridClasses = "grid w-full auto-rows-max items-start gap-4 md:gap-6 mx-auto ";
     if (count === 1) {

@@ -42,6 +42,12 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, va
     const visuals = useVisualMessageFilters(messages);
     const { locationRequestMessage } = visuals;
 
+    // Latest thing Vani has said — shown centered on the welcome screen as she speaks.
+    const liveAgentMessage = useMemo(
+        () => messages.findLast(m => m.type === 'text' && m.sender === 'agent') ?? null,
+        [messages]
+    );
+
     const { localParticipant } = useLocalParticipant();
 
     // ─── Location Request Handler ────────────────────────────────────────────
@@ -126,8 +132,9 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, va
                 agentState={agentState}
                 variant={variant}
                 updateMessages={updateMessages}
-                activeTrack={activeTrack}
-                userTrack={userTrack}
+                sendText={sendText}
+                agentText={liveAgentMessage?.text ?? null}
+                isAgentInterim={liveAgentMessage?.isInterim ?? false}
             />
 
             <VoiceDock
