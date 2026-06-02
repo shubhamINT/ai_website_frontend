@@ -74,26 +74,46 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                         className={`group fixed z-50 flex items-center gap-3 ${launcherClassName}`}
                     >
-                        {/* Slide-in label */}
-                        <span className="pointer-events-none translate-x-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-800 opacity-0 shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-black/5 backdrop-blur transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                            Talk to Vani
+                        {/* Greeting card — hidden, slides in on hover */}
+                        <span className="pointer-events-none flex translate-x-3 items-center gap-2.5 rounded-2xl bg-white/95 px-4 py-2.5 text-left opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.14)] ring-1 ring-black/5 backdrop-blur transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                            {/* Sparkle badge */}
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-blue-600">
+                                    <path d="M12 2.25c.3 0 .57.18.69.46l1.83 4.27 4.27 1.83a.75.75 0 0 1 0 1.38l-4.27 1.83-1.83 4.27a.75.75 0 0 1-1.38 0l-1.83-4.27-4.27-1.83a.75.75 0 0 1 0-1.38l4.27-1.83 1.83-4.27a.75.75 0 0 1 .69-.46Z" />
+                                    <path d="M18.75 15a.6.6 0 0 1 .55.36l.78 1.81 1.81.78a.6.6 0 0 1 0 1.1l-1.81.78-.78 1.81a.6.6 0 0 1-1.1 0l-.78-1.81-1.81-.78a.6.6 0 0 1 0-1.1l1.81-.78.78-1.81a.6.6 0 0 1 .55-.36Z" />
+                                </svg>
+                            </span>
+                            <span className="flex flex-col leading-tight">
+                                <span className="text-[15px] font-bold text-slate-900">Hi, I&apos;m Vaani</span>
+                                <span className="text-xs font-medium text-blue-600">Your INT AI assistant</span>
+                            </span>
                         </span>
 
+                        {/* Orb — deep navy glass with a living iridescent core + white voice equalizer */}
                         <button
                             onClick={onOpen}
-                            className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white shadow-[0_8px_30px_rgba(37,99,235,0.45)] ring-1 ring-white/20 transition-all duration-300 hover:scale-105 hover:shadow-[0_14px_44px_rgba(37,99,235,0.6)] active:scale-95"
+                            className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_38%,#1e2a52_0%,#111c3d_55%,#070d22_100%)] shadow-[0_10px_34px_rgba(7,13,34,0.55)] ring-1 ring-white/15 transition-all duration-300 hover:scale-105 hover:shadow-[0_16px_48px_rgba(7,13,34,0.65)] active:scale-95"
                             aria-label="Talk to Vani"
                         >
-                            {/* Soft breathing halo */}
-                            <span className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-blue-500/30 [animation-duration:3s]" />
-                            {/* Top sheen for depth */}
-                            <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/15" />
+                            {/* Living iridescent core — moves + rotates inside the orb */}
+                            <span className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 animate-orb-swirl rounded-full bg-[conic-gradient(from_0deg,#60a5fa,#22d3ee,#818cf8,#c084fc,#f472b6,#60a5fa)] opacity-80 blur-[9px]" />
+                            {/* Glossy top sheen */}
+                            <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/25 via-transparent to-transparent" />
 
-                            {/* Mic icon */}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="relative h-7 w-7 drop-shadow-sm">
-                                <path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" />
-                                <path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" />
-                            </svg>
+                            {/* Crisp white equalizer bars */}
+                            <span className="relative flex h-7 items-center gap-[2.5px]">
+                                {[0.4, 0.7, 1, 0.55, 0.9, 0.5, 0.75].map((h, i) => (
+                                    <span
+                                        key={i}
+                                        className="w-[2.5px] animate-pulse rounded-full bg-white shadow-[0_0_5px_rgba(255,255,255,0.85)]"
+                                        style={{
+                                            height: `${h * 100}%`,
+                                            animationDuration: `${0.85 + i * 0.1}s`,
+                                            animationDelay: `${i * 0.07}s`,
+                                        }}
+                                    />
+                                ))}
+                            </span>
                         </button>
                     </motion.div>
                 )}

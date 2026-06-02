@@ -14,6 +14,22 @@
 
   --animate-pulse-slow: pulse-slow 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-marquee: marquee 30s linear infinite;
+  --animate-orb-swirl: orb-swirl 7s ease-in-out infinite;
+
+  @keyframes orb-swirl {
+    0% {
+      transform: translate(-28%, -18%) rotate(0deg) scale(1.15);
+    }
+    33% {
+      transform: translate(12%, 16%) rotate(130deg) scale(1.3);
+    }
+    66% {
+      transform: translate(-14%, 12%) rotate(245deg) scale(1.2);
+    }
+    100% {
+      transform: translate(-28%, -18%) rotate(360deg) scale(1.15);
+    }
+  }
 
   @keyframes pulse-slow {
     0%,
