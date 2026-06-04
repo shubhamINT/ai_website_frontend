@@ -16,7 +16,7 @@ ai_website_frontend/
 ├── Dockerfile                 # Multi-stage Docker build configuration
 ├── docker-compose.yml         # Docker Compose orchestration
 ├── .dockerignore             # Files to exclude from Docker build
-├── .env.production           # Production environment variables template
+├── .env                      # Environment variables (create locally; gitignored)
 ├── next.config.ts            # Next.js config with standalone output
 └── types/
     └── globals.d.ts          # TypeScript declarations for non-JS imports (CSS, images)
@@ -140,11 +140,15 @@ immersive `/dynamic` view does not use:
   with a streaming caret as she talks.
 - **Swipeable starter strip** — starter questions move to the bottom as a swipe strip
   (click to send) instead of a centered list.
-- **Swipe deck** — agent flashcards render as a left-to-right `SwipeDeck` (drag + arrows
-  + dots) instead of a vertical grid.
+- **Card stack** — agent flashcards render as a 3D stacked deck (`CardStack`): the
+  front card sits full-size, the rest peek from the top-right corner. It plays one
+  slow auto-cycle (first → last → back to first) then stops; drag / arrows / dots
+  navigate manually. (The immersive `/dynamic` view keeps the vertical grid.)
 
-`SwipeDeck` lives in `_shared/components/primitives/`. All of this is gated on
-`variant === 'window'`, so `/dynamic` is unchanged.
+`CardStack` and `SwipeDeck` both live in `_shared/components/primitives/` (the
+starter strip uses `SwipeDeck`; flashcards use `CardStack`). The window card surface
+also carries a soft blue tint. All of this is gated on `variant === 'window'`, so
+`/dynamic` is unchanged.
 
 ### Test it locally
 
@@ -164,17 +168,20 @@ without an `auth_session` cookie. To restrict which domains may embed Vani, add 
 
 ### 1. Configure Environment Variables
 
-Copy the production environment template and update with your values:
+Create a `.env` file in the project root (it's the only env file; gitignored).
+Add your values — see the full reference table at the bottom:
 
-```bash
-cp .env.production .env
-```
-
-Edit `.env` with your production values:
 ```env
-NEXT_PUBLIC_LIVEKIT_URL=wss://livekit-vyom.indusnettechnologies.com
-NEXT_PUBLIC_BACKEND_URL=https://api-livekit-vyom.indusnettechnologies.com
-NEXT_PUBLIC_PIXABAY_API_KEY=your_actual_api_key
+# Real-time agent (client-side)
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-livekit-host
+NEXT_PUBLIC_BACKEND_URL=https://your-backend-host
+NEXT_PUBLIC_PIXABAY_API_KEY=your_pixabay_api_key
+
+# Auth (server-side only)
+BACKEND_URL=https://your-backend-host
+APP_URL=https://your-frontend-host          # this app's public origin (Google SSO redirect)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
 ### 2. Build and Run with Docker Compose
@@ -275,8 +282,7 @@ scp -r . user@your-server:/path/to/deployment/
 2. **On the server:**
 ```bash
 cd /path/to/deployment/
-cp .env.production .env
-# Edit .env with production values
+# Create .env with production values (the only env file)
 nano .env
 
 # Build and start
@@ -463,7 +469,7 @@ Auth is split between Next.js (UI + cookie) and FastAPI (credential verification
 
 - **Username/Password:** Login form → Next.js `/api/auth` → FastAPI `POST /auth/login` → signed JWT → httpOnly cookie
 - **Google SSO:** Google button → Next.js `/api/auth/google` → FastAPI OAuth flow → signed JWT → httpOnly cookie → `/landing`
-- **Session gate:** `proxy.ts` checks `auth_session` cookie on every request. Clients expire after `CLIENT_SESSION_HOURS` (default 4h). Admins get 30-day sessions.
+- **Session gate:** `proxy.ts` checks the `auth_session` cookie on every request and enforces its `expiresAt`. Cookie lifetime is set in `app/api/auth/google/callback/route.ts`: admins get 30-day sessions; clients use the backend's `expires_at`, falling back to 4h.
 
 ### Auth flow diagram
 
@@ -478,7 +484,9 @@ Google SSO:
 
 ### Backend setup
 
-See `BACKEND_AUTH_SPEC.md` for the complete FastAPI implementation guide (endpoints, JWT config, DB model, Google OAuth setup).
+The FastAPI backend must expose `POST /auth/login` (username/password → JWT) and the
+Google OAuth flow (`/auth/google` → consent → `/auth/google/callback`). The Next.js
+route handlers in `app/api/auth/*` proxy to it and set the httpOnly `auth_session` cookie.
 
 ---
 
@@ -489,7 +497,8 @@ See `BACKEND_AUTH_SPEC.md` for the complete FastAPI implementation guide (endpoi
 | `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit WebSocket URL | `wss://livekit-vyom.indusnettechnologies.com` |
 | `NEXT_PUBLIC_BACKEND_URL` | Backend API URL (public, used client-side) | `https://api.indusnettechnologies.com` |
 | `NEXT_PUBLIC_PIXABAY_API_KEY` | Pixabay API key for images | `your_api_key_here` |
-| `BACKEND_URL` | Backend API URL (server-side only, for auth proxy) | `https://api.indusnettechnologies.com` |
+| `BACKEND_URL` | Backend API URL (server-side only, for auth proxy; falls back to `NEXT_PUBLIC_BACKEND_URL`) | `https://api.indusnettechnologies.com` |
+| `APP_URL` | This frontend's public origin — builds the Google SSO redirect (defaults to `http://localhost:3000`) | `https://vani.indusnettechnologies.com` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | from Google Cloud Console |
 | `NODE_ENV` | Node environment | `production` |
