@@ -84,7 +84,10 @@ export const CardStack: React.FC<CardStackProps> = ({
 
     return (
         <div className={`flex w-full flex-col items-center ${className}`}>
-            <motion.div layout className="relative w-full">
+            {/* grid-stack: all cards share one cell → container sizes to the TALLEST
+                card and every card stretches to it (uniform size). Transforms below
+                still produce the 3D peek without changing the layout box. */}
+            <motion.div layout className="relative grid w-full">
                 {slides.map((slide, i) => {
                     // Circular depth: 0 = front, 1..n behind. The front card cycles
                     // to the back of the stack rather than peeling off-screen.
@@ -108,9 +111,9 @@ export const CardStack: React.FC<CardStackProps> = ({
                     return (
                         <motion.div
                             key={i}
-                            // Front card stays in flow so it drives the container height;
-                            // the rest stack absolutely behind it.
-                            className={isFront ? 'relative' : 'absolute inset-x-0 top-0'}
+                            // All cards occupy the same grid cell so the deck height =
+                            // the tallest card and every card is the same size.
+                            className="[grid-area:1/1] w-full"
                             style={{ zIndex: 100 - depth }}
                             animate={target}
                             transition={SPRING}

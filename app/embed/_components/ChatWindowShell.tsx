@@ -22,6 +22,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveKitRoom } from "@livekit/components-react";
 import { AgentInterface } from "@/app/_shared/components/agent/AgentInterface";
 
+// Stable references — LiveKitRoom re-runs its connect/publish effects when these prop
+// identities change, so inline objects/handlers would reconnect the room on every
+// re-render (e.g. an expand/shrink width toggle). Hoisting them keeps the room alive.
+const AUDIO_CAPTURE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true } as const;
+const ROOM_STYLE = { height: "100%" } as const;
+const logLkError = (err: Error) => console.error("LiveKit Room Error:", err);
+
 interface ChatWindowShellProps {
     isOpen: boolean;
     onOpen: () => void;
@@ -222,15 +229,11 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                     serverUrl={livekitUrl}
                                     connect={true}
                                     video={false}
-                                    audio={{
-                                        echoCancellation: true,
-                                        noiseSuppression: true,
-                                        autoGainControl: true,
-                                    }}
+                                    audio={AUDIO_CAPTURE}
                                     data-lk-theme="default"
-                                    style={{ height: "100%" }}
+                                    style={ROOM_STYLE}
                                     onDisconnected={onClose}
-                                    onError={(err) => console.error("LiveKit Room Error:", err)}
+                                    onError={logLkError}
                                 >
                                     <AgentInterface variant="window" onDisconnect={onClose} isExpanded={isExpanded} />
                                 </LiveKitRoom>

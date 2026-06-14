@@ -1,34 +1,37 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useLocalParticipant } from '@livekit/components-react';
 import { InteractionMode, ChatMessage } from '../types/agentTypes';
+import { useSpeechGate } from './useSpeechGate';
 
 export function useInteractionControl(
     updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void
 ) {
     const { localParticipant } = useLocalParticipant();
     const [mode, setInteractionMode] = useState<InteractionMode>('voice');
+    const [manuallyMuted, setManuallyMuted] = useState(false);
 
-    // Exclusive Mode Management
+    // In voice mode (and not hand-muted) the VAD gate owns the mic — opens it on
+    // detected speech, holds it on silence (always gated; see [[vad-always-gate]]).
+    // Otherwise the mic is forced off here.
+    const gateActive = mode === 'voice' && !manuallyMuted;
+    useSpeechGate(gateActive);
+
     useEffect(() => {
         if (!localParticipant) return;
-
-        if (mode === 'voice') {
-            localParticipant.setMicrophoneEnabled(true);
-        } else {
+        if (!gateActive) {
             localParticipant.setMicrophoneEnabled(false);
         }
-    }, [localParticipant, mode]);
+        // when gateActive, useSpeechGate is the sole owner of the mic enable state.
+    }, [localParticipant, gateActive]);
 
 
     const toggleMic = useCallback((mute: boolean) => {
-        if (localParticipant) {
-            // Mute = User wants silence. If they unmute, they enter Voice mode.
-            if (!mute) {
-                setInteractionMode('voice');
-            }
-            localParticipant.setMicrophoneEnabled(!mute);
+        // Mute = user wants silence (pauses the gate). Unmute → re-enter voice mode.
+        setManuallyMuted(mute);
+        if (!mute) {
+            setInteractionMode('voice');
         }
-    }, [localParticipant]);
+    }, []);
 
     const sendText = useCallback(async (text: string) => {
         if (localParticipant) {

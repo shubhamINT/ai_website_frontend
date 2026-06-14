@@ -153,7 +153,7 @@ export const Flashcard = React.memo(({
                 relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem]
                 ${themeClass}
                 p-4 md:p-6 w-full
-                group flex flex-col self-start transition-colors
+                group flex flex-col h-full transition-colors
             `}
         >
             {/* Ambient glow */}

@@ -29,7 +29,7 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
             <div className="relative flex w-full flex-col items-center">
                 <CardStack showDots className="z-10 max-w-[min(92vw,30rem)] pr-6 pt-6">
                     {validCards.map((card) => (
-                        <div key={card.id} className="flex w-full items-start">
+                        <div key={card.id} className="flex w-full h-full items-start">
                             <Flashcard
                                 {...card.cardData}
                                 layout="default"
@@ -44,7 +44,9 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
         );
     }
 
-    let gridClasses = "grid w-full auto-rows-max items-start gap-4 md:gap-6 mx-auto ";
+    // auto-rows-fr → every row equal height = the tallest card; cards stretch (h-full)
+    // so every flashcard ends up the same size, shorter ones padded with empty space.
+    let gridClasses = "grid w-full auto-rows-fr gap-4 md:gap-6 mx-auto ";
     if (count === 1) {
         gridClasses += "grid-cols-1 max-w-[min(92vw,60rem)]";
     } else if (count === 2) {
@@ -70,7 +72,7 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
                             (card.cardData?.media?.urls && card.cardData.media.urls.length > 0)
                         );
 
-                        const itemClass = "flex w-full self-start items-start";
+                        const itemClass = "flex w-full h-full items-stretch";
 
                         // Determine internal Flashcard layout based on grid context — NOT from backend
                         let layoutProp: 'default' | 'horizontal' = 'default';
