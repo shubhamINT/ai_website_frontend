@@ -90,10 +90,14 @@ export interface NearbyOfficesData {
     offices: NearbyOffice[];
 }
 
+export interface OfficeDetailsData {
+    office: NearbyOffice;
+}
+
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices' | 'job_application_preview' | 'job_application_submit' | 'meeting_form' | 'meeting_form_submit';
+    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices' | 'office_details' | 'job_application_preview' | 'job_application_submit' | 'meeting_form' | 'meeting_form_submit';
     text?: string;
     cardData?: {
         title: string;
@@ -107,6 +111,7 @@ export interface ChatMessage {
     mapPolylineData?: MapPolylineData;
     globalPresenceData?: GlobalPresenceData;
     nearbyOfficesData?: NearbyOfficesData;
+    officeDetailsData?: OfficeDetailsData;
     jobApplicationData?: JobApplicationData;
     meetingFormData?: MeetingFormData;
     meetingInviteSubmitData?: MeetingInviteSubmitData;

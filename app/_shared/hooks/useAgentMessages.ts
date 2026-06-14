@@ -395,6 +395,25 @@ export function useAgentMessages() {
                         return next;
                     });
                 }
+                else if (topic === 'ui.office_details' || data.type === 'office_details') {
+                    const id = `office-details-${Date.now()}`;
+                    console.log('--- OFFICE DETAILS (INCOMING) ---', data);
+
+                    updateMessages((prev) => {
+                        const next = new Map(prev);
+                        next.set(id, {
+                            id,
+                            type: 'office_details',
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false,
+                            officeDetailsData: {
+                                office: data.data?.office || data.office,
+                            }
+                        });
+                        return next;
+                    });
+                }
                 else if (topic === 'ui.job_application' || data.type === 'job_application_preview' || data.type === 'job_application_submit') {
                     const isSubmit = data.type === 'job_application_submit';
                     const msgType = isSubmit ? 'job_application_submit' : 'job_application_preview';

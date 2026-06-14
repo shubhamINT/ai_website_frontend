@@ -26,6 +26,11 @@ const NearbyOffices = dynamic<any>(() => import('../maps/NearbyOffices').then(mo
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
 });
 
+const OfficeDetails = dynamic<any>(() => import('../maps/OfficeDetails').then(mod => mod.OfficeDetails), {
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
+});
+
 interface CanvasProps {
     /** Output of useVisualMessageFilters(messages) — the single visual the agent wants shown. */
     visuals: VisualMessageFilters;
@@ -73,6 +78,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         mapPolylineMessage,
         globalPresenceMessage,
         nearbyOfficesMessage,
+        officeDetailsMessage,
         jobApplicationPreviewMessage,
         jobApplicationSubmitMessage,
     } = visuals;
@@ -138,6 +144,12 @@ export const Canvas: React.FC<CanvasProps> = ({
                 return nearbyOfficesMessage?.nearbyOfficesData && (
                     <div className="flex w-full max-w-7xl justify-center">
                         <NearbyOffices key={nearbyOfficesMessage.id} data={nearbyOfficesMessage.nearbyOfficesData} />
+                    </div>
+                );
+            case 'office_details':
+                return officeDetailsMessage?.officeDetailsData && (
+                    <div className="flex w-full max-w-2xl justify-center">
+                        <OfficeDetails key={officeDetailsMessage.id} data={officeDetailsMessage.officeDetailsData} />
                     </div>
                 );
             case 'job_application_submit':
