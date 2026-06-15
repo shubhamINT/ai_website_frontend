@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { FlashcardStyle, FlashcardMedia } from '@/app/_shared/types/agentTypes';
+import {
+    FlashcardStyle,
+    FlashcardMedia,
+    FlashcardContentKind,
+    FlashcardContent,
+    StatContent,
+    StepsContent,
+    LogoContent,
+} from '@/app/_shared/types/agentTypes';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SmartIcon } from '../primitives/SmartIcon';
@@ -15,13 +23,106 @@ interface FlashcardProps {
     value: string;
     media?: FlashcardMedia;
     card_index?: number;
+    content_kind?: FlashcardContentKind;
+    content?: FlashcardContent;
     // Layout is passed by AgentInterface based on grid context — NOT from backend
     layout?: 'default' | 'horizontal' | 'centered';
     layoutId?: string;
     shouldStreamText?: boolean;
+    /** Render flat (no scrim / glow / blur) — used in the widget where the window
+     *  glass is already the surface, so a per-card scrim would nest surfaces. */
+    chromeless?: boolean;
 }
 
 type FullFlashcardProps = FlashcardProps & FlashcardStyle;
+
+// ─── Rich body renderers ──────────────────────────────────────────────────────
+// Each renders a structured `content` payload. No new deps — lucide via SmartIcon,
+// framer-motion (already imported) for entrance.
+
+interface RichBodyProps<T> { content: T; isNeon: boolean; colorText: string; }
+
+const StatBody = ({ content, isNeon }: RichBodyProps<StatContent>) => (
+    <div className="grid grid-cols-2 gap-4 md:gap-6">
+        {content.items?.map((item, i) => (
+            <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08, type: 'spring', stiffness: 200, damping: 22 }}
+                className="flex flex-col"
+            >
+                <span className={`font-display text-3xl md:text-5xl font-semibold leading-none tracking-tight ${isNeon ? 'text-white' : 'text-zinc-900'}`}>
+                    {item.value}
+                    {item.trend && (
+                        <span className={`ml-1 align-middle ${item.trend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {item.trend === 'up' ? '↑' : '↓'}
+                        </span>
+                    )}
+                </span>
+                <span className={`mt-1 text-sm md:text-base ${isNeon ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                    {item.label}
+                </span>
+            </motion.div>
+        ))}
+    </div>
+);
+
+const StepsBody = ({ content, isNeon, colorText }: RichBodyProps<StepsContent>) => (
+    <ol className="flex flex-col gap-4">
+        {content.steps?.map((step, i) => (
+            <motion.li
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08, type: 'spring', stiffness: 200, damping: 22 }}
+                className="flex items-start gap-3"
+            >
+                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${isNeon ? 'bg-white/15 text-white' : `bg-zinc-900/5 ${colorText}`}`}>
+                    {step.icon
+                        ? <SmartIcon iconRef={step.icon} type="static" className="h-4 w-4" />
+                        : i + 1}
+                </span>
+                <div className="min-w-0">
+                    <p className={`text-base md:text-lg font-semibold leading-snug ${isNeon ? 'text-white' : 'text-zinc-900'}`}>
+                        {step.title}
+                    </p>
+                    {step.detail && (
+                        <p className={`mt-0.5 text-sm md:text-base ${isNeon ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                            {step.detail}
+                        </p>
+                    )}
+                </div>
+            </motion.li>
+        ))}
+    </ol>
+);
+
+const LogoBody = ({ content, isNeon, colorText }: RichBodyProps<LogoContent>) => (
+    <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+        className="flex flex-col items-center gap-3 py-2 text-center"
+    >
+        {content.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={content.image_url} alt={content.name} className="h-16 w-auto object-contain md:h-20" />
+        ) : content.icon ? (
+            <span className={isNeon ? 'text-white' : colorText}>
+                <SmartIcon iconRef={content.icon} type="static" className="h-12 w-12 md:h-16 md:w-16" />
+            </span>
+        ) : null}
+        <span className={`font-display text-xl md:text-2xl font-semibold ${isNeon ? 'text-white' : 'text-zinc-900'}`}>
+            {content.name}
+        </span>
+        {content.caption && (
+            <span className={`text-sm md:text-base ${isNeon ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                {content.caption}
+            </span>
+        )}
+    </motion.div>
+);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -32,20 +133,26 @@ export const Flashcard = React.memo(({
     icon,
     media,
     card_index = 0,
+    content_kind = 'markdown',
+    content,
     layout = 'default',
     layoutId,
     shouldStreamText = false,
+    chromeless = false,
 }: FullFlashcardProps) => {
 
     // Derive accent color purely from visual_intent
     const colorKey = INTENT_COLOR_MAP[visual_intent ?? 'neutral'] ?? 'zinc';
     const colors = COLOR_PALETTE[colorKey] ?? COLOR_PALETTE.zinc;
 
-    // Theme: neon for cyberpunk, glass for everything else
+    // Theme: neon keeps its solid panel; everything else floats on a soft scrim —
+    // no card box (no ring / hard shadow), just a faint blur halo for legibility.
+    // `chromeless` (widget) drops the scrim entirely so the card sits flat on the
+    // window glass.
     const isNeon = visual_intent === 'cyberpunk';
     const themeClass = isNeon
-        ? `bg-zinc-900 text-white shadow-[0_0_30px_rgba(0,0,0,0.5)] ring-1 ring-${colorKey}-500/50`
-        : 'bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-white/60';
+        ? `bg-zinc-900 text-white shadow-[0_0_30px_rgba(0,0,0,0.5)] ring-1 ring-${colorKey}-500/50 rounded-[1.5rem] md:rounded-[2rem]`
+        : chromeless ? '' : 'backdrop-blur-md';
     const prefersReducedMotion = useReducedMotion();
     const hasStreamedOnceRef = useRef(false);
     const [displayLength, setDisplayLength] = useState(0);
@@ -125,14 +232,14 @@ export const Flashcard = React.memo(({
         return (
             <div className={`
                 markdown-render
-                ${isNeon ? 'prose-invert text-zinc-300' : 'text-zinc-600'}
-                prose prose-sm max-w-none
-                prose-p:leading-relaxed prose-p:my-1
+                ${isNeon ? 'prose-invert text-zinc-200' : 'text-zinc-700'}
+                prose md:prose-lg max-w-none
+                prose-p:leading-relaxed prose-p:my-2
                 prose-headings:my-2 prose-headings:font-bold prose-headings:text-inherit
                 prose-strong:text-inherit prose-strong:font-bold
-                prose-ul:my-2 prose-ul:list-disc prose-ul:pl-4
-                prose-li:my-0.5
-                text-[11px] md:text-sm
+                prose-ul:my-2 prose-ul:list-disc prose-ul:pl-5 [&_ul>li::marker]:text-blue-500
+                prose-li:my-1
+                text-base md:text-xl leading-relaxed
                 ${layout === 'centered' ? 'text-center [&>*]:text-center' : ''}
             `}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
@@ -150,15 +257,23 @@ export const Flashcard = React.memo(({
             exit="exit"
             variants={cardVariants}
             className={`
-                relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem]
+                relative ${isNeon ? 'overflow-hidden' : 'overflow-visible'}
                 ${themeClass}
-                p-4 md:p-6 w-full
+                ${chromeless ? 'px-1 py-2' : 'p-5 md:p-8'} w-full
                 group flex flex-col h-full transition-colors
             `}
         >
-            {/* Ambient glow */}
-            <div className={`absolute -right-20 -top-20 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[30px] md:blur-[60px] opacity-25 md:opacity-40`} />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.46)_0%,rgba(255,255,255,0.14)_28%,rgba(255,255,255,0)_62%)]" />
+            {/* Soft scrim: a faint blurred halo that hugs the content so text/image
+                stay legible on the blue surface — reads as floating, not a card box.
+                Neon keeps its solid panel; the scrim is non-neon only; `chromeless`
+                (widget) drops it so the card sits flat on the window glass. */}
+            {!isNeon && !chromeless && (
+                <div className="pointer-events-none absolute -inset-3 md:-inset-5 -z-10 rounded-[2rem] md:rounded-[2.5rem] bg-[radial-gradient(120%_120%_at_50%_30%,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.42)_45%,rgba(255,255,255,0)_78%)]" />
+            )}
+            {/* Ambient color glow — the floating halo (non-chromeless only) */}
+            {!chromeless && (
+                <div className={`pointer-events-none absolute -right-16 -top-16 -z-10 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[40px] md:blur-[70px] opacity-20 md:opacity-30`} />
+            )}
 
             <div className={`relative z-10 flex flex-col
                 ${layout === 'horizontal' ? 'gap-4 md:flex-row md:items-center md:gap-6' : 'gap-4 md:gap-5'}
@@ -168,14 +283,12 @@ export const Flashcard = React.memo(({
                 {/* Horizontal media (left side) */}
                 {showHorizontalMedia && (
                     <div className="w-full shrink-0 md:w-[min(40%,20rem)] md:max-w-[20rem]">
-                        <div className="rounded-[1.35rem] bg-white/65 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] ring-1 ring-white/70 md:rounded-[1.6rem]">
-                            <RichMedia
-                                urls={media?.urls}
-                                query={media?.query}
-                                source={media?.source}
-                                alt={title}
-                            />
-                        </div>
+                        <RichMedia
+                            urls={media?.urls}
+                            query={media?.query}
+                            source={media?.source}
+                            alt={title}
+                        />
                     </div>
                 )}
 
@@ -184,22 +297,22 @@ export const Flashcard = React.memo(({
                     <div className={`flex items-start ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
                         <div className={`flex items-center gap-2 md:gap-3 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
                             <div className={`
-                                flex shrink-0 h-8 w-8 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-[14px]
+                                flex shrink-0 h-9 w-9 items-center justify-center rounded-xl md:h-11 md:w-11
                                 ${isNeon
                                     ? `bg-gradient-to-br ${colors.gradient} text-white`
-                                    : `bg-white ${colors.text} ring-1 ring-zinc-100 shadow-sm`
+                                    : `${colors.text}`
                                 }
                                 transition-all duration-300 group-hover:scale-110
                             `}>
                                 <SmartIcon
                                     iconRef={typeof icon === 'object' ? icon.ref : (icon || 'info')}
                                     type="static"
-                                    className="w-4 h-4 md:w-5 md:h-5"
+                                    className="w-5 h-5 md:w-6 md:h-6"
                                 />
                             </div>
 
                             <div>
-                                <h3 className={`text-xs md:text-[15px] font-bold leading-tight ${isNeon ? 'text-white' : 'text-zinc-900'}`}>
+                                <h3 className={`font-display text-lg md:text-2xl font-semibold leading-tight tracking-tight ${isNeon ? 'text-white' : 'text-zinc-900'}`}>
                                     {title}
                                 </h3>
                             </div>
@@ -219,7 +332,7 @@ export const Flashcard = React.memo(({
 
                     {/* Stacked media (inside content column) */}
                     {showStackedMedia && (
-                        <div className="mt-4 rounded-[1.35rem] bg-white/65 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] ring-1 ring-white/70 md:rounded-[1.7rem]">
+                        <div className="mt-4">
                             <RichMedia
                                 urls={media?.urls}
                                 query={media?.query}
@@ -229,14 +342,24 @@ export const Flashcard = React.memo(({
                         </div>
                     )}
 
-                    {/* Body text */}
-                    <div className={`mt-3 text-sm ${isNeon ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                        {renderContent(visibleText)}
-                        {displayLength > 0 && displayLength < safeValue.length && (
-                            <span
-                                aria-hidden="true"
-                                className="ml-1 inline-block h-3 w-[2px] animate-pulse rounded-full bg-current align-middle opacity-50"
-                            />
+                    {/* Body — markdown (streamed) by default, or a structured renderer */}
+                    <div className={`mt-4 ${isNeon ? 'text-zinc-200' : 'text-zinc-700'}`}>
+                        {content_kind === 'stat' && content ? (
+                            <StatBody content={content as StatContent} isNeon={isNeon} colorText={colors.text} />
+                        ) : content_kind === 'steps' && content ? (
+                            <StepsBody content={content as StepsContent} isNeon={isNeon} colorText={colors.text} />
+                        ) : content_kind === 'logo' && content ? (
+                            <LogoBody content={content as LogoContent} isNeon={isNeon} colorText={colors.text} />
+                        ) : (
+                            <>
+                                {renderContent(visibleText)}
+                                {displayLength > 0 && displayLength < safeValue.length && (
+                                    <span
+                                        aria-hidden="true"
+                                        className="ml-1 inline-block h-4 w-[2px] animate-pulse rounded-full bg-current align-middle opacity-50"
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

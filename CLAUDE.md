@@ -42,8 +42,8 @@ The AI is a LiveKit voice/text agent, not a request/response API:
    - `useAgentMessages` — parses inbound LiveKit **data-channel** messages and
      transcriptions into a `Map<id, ChatMessage>`. UI is message-type driven
      (topics like `ui.flashcard`, `ui.contact_form`, `ui.meeting_form`,
-     `map.polyline`, `ui.global_presence`, `ui.nearby_offices`, `ui.job_application`,
-     `ui.location_request`).
+     `map.polyline`, `ui.global_presence`, `ui.nearby_offices`, `ui.office_details`,
+     `ui.job_application`, `ui.location_request`).
    - `useInteractionControl` — voice/text mode, mic toggle, `sendText` (topic `lk.chat`).
    - `useContextSync` — pushes UI/user context snapshots back to the agent
      (topics `ui.context`, `user.context`).

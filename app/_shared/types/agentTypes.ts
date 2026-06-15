@@ -12,6 +12,29 @@ export interface FlashcardStyle {
     visual_intent?: 'neutral' | 'urgent' | 'success' | 'warning' | 'processing' | 'cyberpunk';
 }
 
+// ─── Rich flashcard body ────────────────────────────────────────────────────
+// Backend may send a structured `content` instead of plain markdown `value`.
+// `content_kind` selects the renderer; missing/unknown → falls back to markdown.
+
+export type FlashcardContentKind = 'markdown' | 'stat' | 'steps' | 'logo';
+
+export interface StatContent {
+    items: { value: string; label: string; trend?: 'up' | 'down' }[];
+}
+
+export interface StepsContent {
+    steps: { title: string; detail?: string; icon?: string }[];
+}
+
+export interface LogoContent {
+    name: string;
+    icon?: string;
+    image_url?: string;
+    caption?: string;
+}
+
+export type FlashcardContent = StatContent | StepsContent | LogoContent;
+
 
 
 export interface UserInfo {
@@ -105,6 +128,10 @@ export interface ChatMessage {
         stream_id?: string;
         card_index?: number;
         media?: FlashcardMedia;
+        // Rich body: when content_kind is set (and != 'markdown'), `content`
+        // drives a structured renderer; otherwise `value` markdown is used.
+        content_kind?: FlashcardContentKind;
+        content?: FlashcardContent;
     } & FlashcardStyle;
     contactFormData?: ContactFormData;
     locationRequestData?: LocationRequestData;

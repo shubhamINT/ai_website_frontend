@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ChatMessage } from '@/app/_shared/types/agentTypes';
 import { Flashcard } from '../flashcard/Flashcard';
-import { CardStack } from '../primitives/CardStack';
+import { CardCarousel } from '../primitives/CardCarousel';
 
 interface CardDisplayProps {
     cards: ChatMessage[];
@@ -21,25 +21,27 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
     const latestFlashcardId = validCards[validCards.length - 1].id;
     const count = validCards.length;
 
-    // Widget: more than one card → 3D stacked deck (upcoming cards peek from the
-    // top-right; the newest rises to the front as the agent speaks). The pt/pr
-    // headroom keeps the peeking cards from clipping at the container edge.
-    if (variant === 'window' && count > 1) {
+    // Widget: ONE card visible at a time. Cards slide horizontally (swipe / arrows
+    // / dots) and the off-screen ones are clipped — no peeking neighbors. Cards
+    // render `chromeless` so they sit flat on the widget glass (single surface
+    // depth) rather than a card-inside-a-card.
+    if (variant === 'window') {
         return (
             <div className="relative flex w-full flex-col items-center">
-                <CardStack showDots className="z-10 max-w-[min(92vw,30rem)] pr-6 pt-6">
+                <CardCarousel showDots={count > 1} className="z-10 max-w-[min(94vw,30rem)]">
                     {validCards.map((card) => (
                         <div key={card.id} className="flex w-full h-full items-start">
                             <Flashcard
                                 {...card.cardData}
                                 layout="default"
+                                chromeless
                                 card_index={card.cardData?.card_index ?? 0}
                                 layoutId={card.id}
                                 shouldStreamText={card.id === latestFlashcardId}
                             />
                         </div>
                     ))}
-                </CardStack>
+                </CardCarousel>
             </div>
         );
     }

@@ -108,7 +108,9 @@ export const RichMedia: React.FC<RichMediaProps> = ({
 
     // ─── Base container ───────────────────────────────────────────────────────
 
-    const baseContainer = 'group relative isolate w-full overflow-hidden rounded-[1.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,244,245,0.94))] ring-1 ring-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_35px_rgba(0,0,0,0.08)] transition-all duration-500 md:rounded-[1.45rem]';
+    // Roomless / floating: no frame ring, no heavy panel bg — just a softly
+    // rounded image with a gentle ambient shadow so it floats on the surface.
+    const baseContainer = 'group relative isolate w-full overflow-hidden rounded-[1.25rem] drop-shadow-[0_12px_28px_rgba(0,0,0,0.10)] transition-all duration-500 md:rounded-[1.6rem]';
 
     // ─── Priority 1: Direct URLs ──────────────────────────────────────────────
 

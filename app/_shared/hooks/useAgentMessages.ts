@@ -128,6 +128,9 @@ export function useAgentMessages() {
                                     query: data.media.query,
                                     source: data.media.source,
                                 } : undefined,
+                                // Rich body passthrough — missing → markdown fallback
+                                content_kind: data.content_kind,
+                                content: data.content,
                             },
                             sender: 'agent',
                             timestamp: Date.now(),
