@@ -44,19 +44,19 @@ interface ChatWindowShellProps {
     /** Host/viewport form factor: mobile → full-screen sheet, desktop → bottom-right card. */
     isMobile: boolean;
 
-    // Expand/shrink. The expand button only renders when onToggleExpand is provided.
-    isExpanded?: boolean;
-    onToggleExpand?: () => void;
-
     /** Fires after the card's pop-out finishes (embed uses it to defer the iframe shrink). */
     onExitComplete?: () => void;
     /** Launcher offset, e.g. "bottom-8 right-8" (default) or "bottom-4 right-4". */
     launcherClassName?: string;
 
-    /** A user-dragged free size is active → card fills the iframe (fluid) + show the resize handle. */
+    /** A user-dragged free size is active → card fills the iframe (fluid). */
     freeSize?: boolean;
-    /** Corner-handle pointerdown → hand the drag gesture to the host loader. */
-    onResizeStart?: (pointerId: number, button: number) => void;
+    /** Corner-drag begins (pointer held down on the handle). */
+    onResizeStart?: () => void;
+    /** Corner-drag move — new desired iframe box size in px (rAF-throttled). */
+    onResize?: (width: number, height: number) => void;
+    /** Corner-drag released. */
+    onResizeEnd?: () => void;
 }
 
 export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
@@ -68,15 +68,55 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
     connect,
     livekitUrl,
     isMobile,
-    isExpanded = false,
-    onToggleExpand,
     onExitComplete,
     launcherClassName = "bottom-8 right-8",
     freeSize = false,
     onResizeStart,
+    onResize,
+    onResizeEnd,
 }) => {
     // Fluid only on desktop — mobile is always a full-screen sheet.
     const isFluid = freeSize && !isMobile;
+
+    // ── Corner drag-resize ──────────────────────────────────────────────────
+    // The whole gesture runs INSIDE the iframe with native pointer capture, so
+    // press-hold-release works without a host overlay. Deltas use screenX/Y (not
+    // clientX/Y) because the iframe's top-left origin shifts as it resizes — a
+    // client-coord delta would feed back on itself. We post the new iframe box to
+    // the loader (rAF-throttled), which just applies it.
+    const dragRef = React.useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+    const rafRef = React.useRef<number>(0);
+
+    const handleResizeDown = (e: React.PointerEvent) => {
+        if (isMobile || !onResize) return;
+        e.preventDefault();
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        dragRef.current = { x: e.screenX, y: e.screenY, w: window.innerWidth, h: window.innerHeight };
+        onResizeStart?.();
+    };
+
+    const handleResizeMove = (e: React.PointerEvent) => {
+        const start = dragRef.current;
+        if (!start) return;
+        const dx = e.screenX - start.x;
+        const dy = e.screenY - start.y;
+        // Anchored bottom-right: moving up-and-left (negative delta) grows the box.
+        const w = start.w - dx;
+        const h = start.h - dy;
+        if (rafRef.current) return;
+        rafRef.current = window.requestAnimationFrame(() => {
+            rafRef.current = 0;
+            onResize?.(w, h);
+        });
+    };
+
+    const handleResizeUp = (e: React.PointerEvent) => {
+        if (!dragRef.current) return;
+        dragRef.current = null;
+        if (rafRef.current) { window.cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
+        try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch { /* already released */ }
+        onResizeEnd?.();
+    };
     return (
         <>
             {/* ── Launcher orb ── */}
@@ -145,15 +185,15 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                         exit={{ opacity: 0, y: 24, scale: 0.96 }}
                         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                         // mobile: solid full-screen sheet; desktop: frosted-glass card,
-                        // bottom-right, wider when expanded. Glass = translucent white so
-                        // the host page tints through the (transparent) iframe.
+                        // bottom-right. Glass = translucent white so the host page tints
+                        // through the (transparent) iframe.
                         className={isMobile
                             ? "fixed z-50 flex flex-col overflow-hidden inset-0 bg-gradient-to-b from-white via-sky-50 to-sky-100 shadow-2xl ring-1 ring-black/10"
                             : isFluid
                                 // Fluid: fill the iframe (the host sized it to the dragged size).
                                 // inset-6 mirrors the existing 24px bottom/right offset on all sides.
                                 ? "fixed z-50 flex flex-col overflow-hidden inset-6 rounded-[28px] bg-gradient-to-b from-white/70 via-sky-50/65 to-sky-100/80 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_28px_80px_-12px_rgba(15,23,42,0.28)]"
-                                : `fixed z-50 flex flex-col overflow-hidden bottom-6 right-6 h-[720px] max-h-[calc(100dvh-3rem)] rounded-[28px] bg-gradient-to-b from-white/70 via-sky-50/65 to-sky-100/80 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_28px_80px_-12px_rgba(15,23,42,0.28)] ${isExpanded ? "w-[860px]" : "w-[480px]"}`
+                                : "fixed z-50 flex flex-col overflow-hidden bottom-6 right-6 h-[720px] w-[480px] max-h-[calc(100dvh-3rem)] rounded-[28px] bg-gradient-to-b from-white/70 via-sky-50/65 to-sky-100/80 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_28px_80px_-12px_rgba(15,23,42,0.28)]"
                         }
                     >
                         {/* Top-left resize handle — drag to freely size the window (desktop).
@@ -161,10 +201,10 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                         {!isMobile && onResizeStart && (
                             <button
                                 type="button"
-                                onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    onResizeStart(e.pointerId, e.button);
-                                }}
+                                onPointerDown={handleResizeDown}
+                                onPointerMove={handleResizeMove}
+                                onPointerUp={handleResizeUp}
+                                onLostPointerCapture={handleResizeUp}
                                 style={{ touchAction: "none" }}
                                 aria-label="Resize window"
                                 title="Drag to resize"
@@ -199,25 +239,6 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                             </div>
 
                             <div className="pointer-events-auto flex items-center gap-1">
-                                {/* Expand / shrink — wider card for rich visuals (desktop only) */}
-                                {onToggleExpand && (
-                                    <button
-                                        onClick={onToggleExpand}
-                                        className={`h-8 w-8 items-center justify-center rounded-full bg-white/50 text-blue-600/80 ring-1 ring-white/60 backdrop-blur transition-colors hover:bg-white/80 hover:text-blue-700 ${isMobile ? "hidden" : "flex"}`}
-                                        aria-label={isExpanded ? "Shrink panel" : "Expand panel"}
-                                        title={isExpanded ? "Shrink" : "Expand"}
-                                    >
-                                        {isExpanded ? (
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9 4.5 4.5M9 9V5.25M9 9H5.25m9.75 0 4.5-4.5M15 9V5.25M15 9h3.75M9 15l-4.5 4.5M9 15v3.75M9 15H5.25m9.75 0 4.5 4.5M15 15v3.75m0-3.75h3.75" />
-                                            </svg>
-                                        ) : (
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m-11.25 11.25v-4.5m0 4.5h4.5m-4.5 0L9 15m11.25 5.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                )}
                                 <button
                                     onClick={onClose}
                                     className="flex h-8 w-8 items-center justify-center rounded-full bg-white/50 text-blue-600/80 ring-1 ring-white/60 backdrop-blur transition-colors hover:bg-white/80 hover:text-blue-700"
@@ -268,7 +289,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                     onDisconnected={onClose}
                                     onError={logLkError}
                                 >
-                                    <AgentInterface variant="window" onDisconnect={onClose} isExpanded={isExpanded} fluid={isFluid} />
+                                    <AgentInterface variant="window" onDisconnect={onClose} fluid={isFluid} />
                                 </LiveKitRoom>
                             )}
                         </div>

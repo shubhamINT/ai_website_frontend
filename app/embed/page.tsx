@@ -23,10 +23,9 @@ import { ChatWindowShell } from "./_components/ChatWindowShell";
 
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 
-// Card widths the loader sizes the iframe around (px). Must match the shell's
-// w-[480px] / w-[860px] classes. Mobile ignores these and goes full-screen.
+// Card width the loader sizes the iframe around (px). Must match the shell's
+// w-[480px] class. Mobile ignores this and goes full-screen.
 const WIDTH_DEFAULT = 480;
-const WIDTH_EXPANDED = 860;
 
 // Tell the host loader how big the iframe should be. Safe no-op when opened
 // directly (not embedded) — the message just goes to our own window.
@@ -37,23 +36,22 @@ function postResize(mode: "collapsed" | "open", width?: number) {
     window.parent.postMessage({ type: "vani:resize", mode, width }, "*");
 }
 
-// Tell the host a corner-resize drag has begun. The host then owns the gesture
-// (overlay + pointer capture) and resizes the iframe directly — see widget.js.
-function postDragStart(pointerId: number, button: number) {
+// Corner drag runs inside the iframe (ChatWindowShell); we just relay the new box
+// size to the loader, which applies it. phase "move" = live resize, "end" = settle.
+function postResizeFree(phase: "move" | "end", width?: number, height?: number) {
     if (typeof window === "undefined") return;
-    window.parent.postMessage({ type: "vani:resize-drag-start", pointerId, button, edge: "corner" }, "*");
+    window.parent.postMessage({ type: "vani:resize-free", phase, width, height }, "*");
 }
 
 export default function EmbedPage() {
     const [isOpen, setIsOpen] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
     // Host form factor, told to us by the loader (public/widget.js) — the CSS `sm:`
     // breakpoint can't be trusted here, it keys off the iframe width. Default desktop;
     // corrected as soon as the host pings.
     const [isMobileHost, setIsMobileHost] = useState(false);
-    // Host-persisted free (dragged) iframe size, if any. When set, the card goes
-    // fluid (fills the iframe) and we skip the preset width post on open.
-    const [hostFree, setHostFree] = useState<{ w: number; h: number } | null>(null);
+    // True once the user drags the corner → card goes fluid (fills the iframe).
+    // Resets on close, so each open starts at the default preset (no persistence).
+    const [freeSize, setFreeSize] = useState(false);
     const { token, error, connect, disconnect } = useLiveKitConnection();
 
     // Connect on open, disconnect on close — room lifecycle follows the card.
@@ -68,28 +66,23 @@ export default function EmbedPage() {
     // loader sends the first one even if it mounted before us.
     useEffect(() => {
         function onHostMessage(e: MessageEvent) {
-            if (e.data?.type === "vani:host") {
-                setIsMobileHost(!!e.data.isMobile);
-                setHostFree(e.data.freeSize ?? null);
-            }
+            if (e.data?.type === "vani:host") setIsMobileHost(!!e.data.isMobile);
         }
         window.addEventListener("message", onHostMessage);
         window.parent.postMessage({ type: "vani:ready" }, "*");
         return () => window.removeEventListener("message", onHostMessage);
     }, []);
 
-    // Grow the iframe as soon as we open (so the card has room to pop into), and on
-    // expand/shrink. Collapsing back is deferred to onExitComplete so the pop-out
-    // animation isn't clipped by an early shrink.
+    // Grow the iframe as soon as we open (so the card has room to pop into).
+    // Collapsing back is deferred to onExitComplete so the pop-out animation
+    // isn't clipped by an early shrink.
     useEffect(() => {
-        // With a saved free size the host already applies the box on open — posting a
-        // preset width here would clear it (and flash 480px), so skip it.
-        if (isOpen && !hostFree) postResize("open", isExpanded ? WIDTH_EXPANDED : WIDTH_DEFAULT);
-    }, [isOpen, isExpanded, hostFree]);
+        if (isOpen) postResize("open", WIDTH_DEFAULT);
+    }, [isOpen]);
 
     const handleClose = useCallback(() => {
         setIsOpen(false);
-        setIsExpanded(false);
+        setFreeSize(false); // next open starts at the default preset
     }, []);
 
     return (
@@ -102,11 +95,11 @@ export default function EmbedPage() {
             connect={connect}
             livekitUrl={LIVEKIT_URL}
             isMobile={isMobileHost}
-            isExpanded={isExpanded}
-            onToggleExpand={() => setIsExpanded((v) => !v)}
             onExitComplete={() => postResize("collapsed")}
-            freeSize={!!hostFree}
-            onResizeStart={postDragStart}
+            freeSize={freeSize}
+            onResizeStart={() => setFreeSize(true)}
+            onResize={(w, h) => postResizeFree("move", w, h)}
+            onResizeEnd={() => postResizeFree("end")}
             launcherClassName="bottom-4 right-4"
         />
     );
