@@ -25,13 +25,18 @@ export function useContextSync(
 
         // Extract recent flashcards to provide visual context to the agent
         const visibleCards = currentMessages
-            .filter(m => m.type === 'flashcard')
-            .map(m => ({
-                id: m.id,
-                type: m.type,
-                title: m.cardData?.title,
-                summary: m.cardData?.value?.substring(0, 100) + (m.cardData?.value && m.cardData.value.length > 100 ? '...' : '')
-            }));
+            .filter(m => m.type === 'flashcard' || m.type === 'infographic')
+            .map(m => {
+                // Infographics carry their summary in hero/title, flashcards in cardData.value
+                const title = m.cardData?.title ?? m.infographicData?.title;
+                const body = m.cardData?.value ?? m.infographicData?.hero?.description ?? m.infographicData?.title ?? '';
+                return {
+                    id: m.id,
+                    type: m.type,
+                    title,
+                    summary: body.substring(0, 100) + (body.length > 100 ? '...' : '')
+                };
+            });
 
         // [NEW] Get User Info from Local Storage
         let userInfo = { user_name: "", user_phone: "", user_id: "" };

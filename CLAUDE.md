@@ -41,7 +41,7 @@ The AI is a LiveKit voice/text agent, not a request/response API:
 3. `useAgentInteraction` composes three hooks:
    - `useAgentMessages` — parses inbound LiveKit **data-channel** messages and
      transcriptions into a `Map<id, ChatMessage>`. UI is message-type driven
-     (topics like `ui.flashcard`, `ui.rich_card`, `ui.contact_form`, `ui.meeting_form`,
+     (topics like `ui.flashcard`, `ui.infographic`, `ui.contact_form`, `ui.meeting_form`,
      `map.polyline`, `ui.global_presence`, `ui.nearby_offices`, `ui.office_details`,
      `ui.job_application`, `ui.location_request`).
    - `useInteractionControl` — voice/text mode, mic toggle, `sendText` (topic `lk.chat`).
@@ -51,19 +51,33 @@ The AI is a LiveKit voice/text agent, not a request/response API:
 Message/UI shapes live in `app/_shared/types/agentTypes.ts` (`ChatMessage` and the
 per-feature data types). Import types from there, not through the hooks.
 
-**Flashcard / rich text card.** `ui.flashcard` and `ui.rich_card` both parse into the
-same `flashcard` `ChatMessage` and render through `Flashcard` (`_shared/components/flashcard/`).
-The agent's `publish_rich_card` tool sends `{title, content (markdown), bullets[], chips[],
-visual_intent, icon}`; `content` maps to `cardData.value`. `Flashcard` renders markdown via
-custom `ReactMarkdown` `MD_COMPONENTS` (blue check-circle bullets, accent-barred headings,
-gradient dividers), then the structured `bullets` as a check list and `chips` as footer
-pills with icons auto-derived from the label (`chipIcon` in `flashcardThemes.ts`).
-`visual_intent` (`neutral|urgent|success|warning|processing`) picks the accent via
-`INTENT_COLORS`. Entrance is Apple-style: the `.md-stagger` CSS cascade (`globals.css`) +
-`cardVariants` spring. In the **window** variant the card renders `chromeless` inside a
-white elevated panel — the panel (rounded, ring, shadow, symmetric padding) is applied to
-the `CardCarousel` root in `CardDisplay`, not per-card, so the carousel's `overflow-hidden`
-slide-clip doesn't clip the shadow.
+**Two card types — routed by `payload.type`, not topic.** The agent sends two visual
+cards over the data channel: `flashcard` (image-led) and `infographic` (composed,
+text-led — replaces the old `rich_card`). `ui.flashcard` is the deck stream
+(`publish_ui_stream`; each packet is one card of either type + `stream_id`/`card_index`,
+closed by an `end_of_stream` marker); `ui.infographic` is a single agent-authored
+infographic (`publish_infographic`, instant). `useAgentMessages` routes by
+`data.type` (topic is a fallback) and treats flashcard + infographic as one deck for
+grouping/clearing. `CardDisplay` renders both per-card: flashcards via `Flashcard`,
+infographics via `InfographicRenderer`. (`rich_card` is gone; kept only as a defensive
+alias → infographic.)
+
+**Flashcard** (`_shared/components/flashcard/`) — the classic look: renders flat
+(`chromeless`) directly on the widget glass in the **window** variant (no white panel),
+on a soft scrim in **immersive**. Body markdown goes through shared `MD_COMPONENTS`
+(`flashcard/markdownComponents.tsx` — blue check-circle bullets, accent-barred headings,
+gradient dividers); `bullets`→check list, `chips`→footer pills (`chipIcon`).
+
+**Infographic** (`_shared/components/infographic/`) — its OWN polished elevated card
+(top blue→emerald accent rail, ring + shadow). `InfographicRenderer` renders a header
+(icon + title), optional `hero` (description + `PresetGraphic`), ordered `sections[]`
+(`markdown` | `bullet_list` | `icon_bullets` | `stats` | `cta_banner` via `blocks.tsx`),
+and `chips`. `PresetGraphic` maps a key (`devops_loop`, `cicd_pipeline`, `cloud_stack`,
+`ai_workflow`, `security_shield`) → a bundled animated SVG, and renders nothing on an
+unknown key; keep the key list in sync with the backend prompt. Unknown section types
+degrade to a markdown block. `visual_intent` (`neutral|urgent|success|warning|processing`)
+picks the accent via `INTENT_COLORS`. Entrance is Apple-style: `.md-stagger` cascade +
+`cardVariants` spring.
 
 ### Auth
 
@@ -96,7 +110,7 @@ app/
     ├── ui/          CTAButton, PageBackground
     └── components/  the shared agent rendering layer:
         ├── agent/        AgentInterface (prop `variant: 'immersive' | 'window'`), CardDisplay, …
-        ├── forms/ maps/ flashcard/ media/
+        ├── forms/ maps/ flashcard/ infographic/ media/
         └── primitives/   SmartIcon, StarterScreen, BarVisualizer, useAudioFFT, DynamicImage
 ```
 

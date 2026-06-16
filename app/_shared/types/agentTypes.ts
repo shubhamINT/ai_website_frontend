@@ -7,9 +7,12 @@ export interface FlashcardMedia {
     source?: string;
 }
 
+// Shared accent enum — maps to a theme color (see flashcardThemes INTENT_COLORS).
+export type VisualIntent = 'neutral' | 'urgent' | 'success' | 'warning' | 'processing';
+
 export interface FlashcardStyle {
     icon?: { type: 'static'; ref: string; fallback?: string };
-    visual_intent?: 'neutral' | 'urgent' | 'success' | 'warning' | 'processing';
+    visual_intent?: VisualIntent;
 }
 
 // ─── Rich flashcard body ────────────────────────────────────────────────────
@@ -35,6 +38,48 @@ export interface LogoContent {
 
 export type FlashcardContent = StatContent | StepsContent | LogoContent;
 
+
+// ─── Infographic card ───────────────────────────────────────────────────────
+// Composed, text-led card (replaces the old rich_card). Arrives on topic
+// `ui.infographic` (single) or inside a `ui.flashcard` deck. Routed by payload
+// `type === 'infographic'`. Renders hero + ordered section blocks + chips.
+
+// Bundled vector graphic keys — `<PresetGraphic>` maps key → component, renders
+// nothing on an unknown key. Keep in sync with the backend prompt's preset list.
+export type PresetGraphicKey =
+    | 'devops_loop'
+    | 'cicd_pipeline'
+    | 'cloud_stack'
+    | 'ai_workflow'
+    | 'security_shield';
+
+export interface InfographicHero {
+    icon?: string;
+    title?: string;
+    description?: string;
+    graphic?: string; // PresetGraphicKey, may be absent / unknown
+}
+
+// Closed set of section blocks — only these five `type` values appear.
+export type InfographicSection =
+    | { type: 'markdown'; title?: string; content: string }
+    | { type: 'bullet_list'; title?: string; items: string[] }
+    | { type: 'icon_bullets'; title?: string; graphic?: string; items: { icon?: string; title: string; text?: string }[] }
+    | { type: 'stats'; title?: string; items: { icon?: string; value: string; label: string; intent?: VisualIntent }[] }
+    | { type: 'cta_banner'; icon?: string; title: string; text?: string };
+
+export interface InfographicData {
+    title?: string;
+    visual_intent?: VisualIntent;
+    icon?: string;
+    hero?: InfographicHero;
+    sections?: InfographicSection[];
+    chips?: string[];
+    // deck metadata (mirrors flashcard cardData)
+    stream_id?: string;
+    card_index?: number;
+    recalled?: boolean;
+}
 
 
 export interface UserInfo {
@@ -120,7 +165,7 @@ export interface OfficeDetailsData {
 export interface ChatMessage {
     id: string;
     sender: 'user' | 'agent';
-    type: 'text' | 'flashcard' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices' | 'office_details' | 'job_application_preview' | 'job_application_submit' | 'meeting_form' | 'meeting_form_submit';
+    type: 'text' | 'flashcard' | 'infographic' | 'contact_form' | 'contact_form_submit' | 'location_request' | 'map_polyline' | 'global_presence' | 'nearby_offices' | 'office_details' | 'job_application_preview' | 'job_application_submit' | 'meeting_form' | 'meeting_form_submit';
     text?: string;
     cardData?: {
         title: string;
@@ -136,6 +181,7 @@ export interface ChatMessage {
         bullets?: string[];
         chips?: string[];
     } & FlashcardStyle;
+    infographicData?: InfographicData;
     contactFormData?: ContactFormData;
     locationRequestData?: LocationRequestData;
     mapPolylineData?: MapPolylineData;

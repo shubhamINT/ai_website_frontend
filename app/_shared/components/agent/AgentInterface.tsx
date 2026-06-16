@@ -43,7 +43,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, va
         sendText,
     } = useAgentInteraction();
 
-    const flashcards = useMemo(() => messages.filter(m => m.type === 'flashcard'), [messages]);
+    const flashcards = useMemo(() => messages.filter(m => m.type === 'flashcard' || m.type === 'infographic'), [messages]);
     const visuals = useVisualMessageFilters(messages);
     const { locationRequestMessage } = visuals;
 

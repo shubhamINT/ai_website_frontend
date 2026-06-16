@@ -50,7 +50,7 @@ app/
 │                       #      agent/AgentInterface  engine shell (variant: 'immersive' | 'window')
 │                       #      agent/Canvas          the visual board (cards, maps, forms)
 │                       #      agent/VoiceDock       the control bar (visualizer, mic, text)
-│                       #      forms/ maps/ flashcard/ media/ primitives/
+│                       #      forms/ maps/ flashcard/ infographic/ media/ primitives/
 │
 ├── landing/page.tsx    # post-login page with the two CTA buttons
 ├── login/page.tsx
@@ -140,26 +140,29 @@ immersive `/dynamic` view does not use:
   with a streaming caret as she talks.
 - **Swipeable starter strip** — starter questions move to the bottom as a swipe strip
   (click to send) instead of a centered list.
-- **Card carousel** — agent flashcards render ONE at a time in a sliding filmstrip
+- **Card carousel** — agent cards render ONE at a time in a sliding filmstrip
   (`CardCarousel`): the active card is centered, the rest are clipped off-screen (no
   peeking). It plays one slow auto-advance (first → last) then rests; drag / arrows /
   dots navigate manually. (The immersive `/dynamic` view keeps the vertical grid.)
-- **White elevated card** — the carousel sits in a crisp white rounded panel (ring +
-  soft shadow + symmetric padding) floating on the blue-glass window, so the text card
-  reads cleanly like a standalone card. The surface is applied to the `CardCarousel`
-  root, not per-card, so the carousel's `overflow-hidden` slide-clip never clips the
-  shadow; cards render `chromeless` (flat) inside it.
+- **Classic flashcard** — image flashcards render flat (`chromeless`) directly on the
+  blue-glass window (no white panel wrapper), so the carousel surface stays the single
+  depth layer.
 
 `CardCarousel` and `SwipeDeck` both live in `_shared/components/primitives/` (the
-starter strip uses `SwipeDeck`; flashcards use `CardCarousel`). All of this is gated on
+starter strip uses `SwipeDeck`; cards use `CardCarousel`). All of this is gated on
 `variant === 'window'`, so `/dynamic` is unchanged.
 
-**Rich text cards.** The agent's `publish_rich_card` tool (`ui.rich_card`) sends a
-text-only card — `{title, content (markdown), bullets[], chips[], visual_intent, icon}` —
-for answers with no image/map/form. It renders through the same `Flashcard`: markdown body
-(blue check bullets, accent headings, dividers), a structured `bullets` checklist, and
-`chips` footer pills whose icons are auto-derived from each label. Images stay on
-`publish_ui_stream`; rich cards are text-only.
+**Two card types (routed by `payload.type`).** `flashcard` is image-led (classic flat
+card). `infographic` (topic `ui.infographic` via `publish_infographic`, or inside the
+`ui.flashcard` deck) is the composed, text-led card that **replaces** the old `rich_card`,
+used broadly for text answers (pricing, process, explainers, greetings). It renders
+through `InfographicRenderer` (`_shared/components/infographic/`) as its OWN elevated
+card: top blue→emerald accent rail, header (icon + title), optional `hero`
+(description + `PresetGraphic`), ordered `sections[]` (`markdown` | `bullet_list` |
+`icon_bullets` | `stats` | `cta_banner`), and `chips` footer pills. `PresetGraphic` maps
+a key (`devops_loop`, `cicd_pipeline`, `cloud_stack`, `ai_workflow`, `security_shield`)
+to a bundled animated SVG and renders nothing on an unknown key. Markdown is shared with
+the flashcard via `flashcard/markdownComponents.tsx`.
 
 ### Test it locally
 

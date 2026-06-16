@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ChatMessage } from '@/app/_shared/types/agentTypes';
 import { Flashcard } from '../flashcard/Flashcard';
+import { InfographicRenderer } from '../infographic/InfographicRenderer';
 import { CardCarousel } from '../primitives/CardCarousel';
 
 interface CardDisplayProps {
@@ -10,38 +11,55 @@ interface CardDisplayProps {
     variant?: 'immersive' | 'window';
 }
 
+// A card renders if it's a flashcard with a title or an infographic with data.
+const isRenderable = (card: ChatMessage) =>
+    (card.type === 'flashcard' && card.cardData?.title !== undefined) ||
+    (card.type === 'infographic' && card.infographicData !== undefined);
+
 export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) => {
     if (cards.length === 0) return null;
 
-    const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
-        card && card.cardData !== undefined && card.cardData.title !== undefined
-    );
+    const validCards = cards.filter(isRenderable);
     if (validCards.length === 0) return null;
 
     const latestFlashcardId = validCards[validCards.length - 1].id;
     const count = validCards.length;
 
+    // Render one card by type: image flashcard (flat) or composed infographic
+    // (its own elevated card surface). Both coexist in one deck / grid.
+    const renderCard = (card: ChatMessage, chromeless: boolean) => {
+        if (card.type === 'infographic') {
+            return (
+                <InfographicRenderer
+                    schema={card.infographicData!}
+                    card_index={card.infographicData?.card_index ?? 0}
+                    layoutId={card.id}
+                />
+            );
+        }
+        return (
+            <Flashcard
+                {...card.cardData!}
+                layout="default"
+                chromeless={chromeless}
+                card_index={card.cardData?.card_index ?? 0}
+                layoutId={card.id}
+                shouldStreamText={card.id === latestFlashcardId}
+            />
+        );
+    };
+
     // Widget: ONE card visible at a time. Cards slide horizontally (swipe / arrows
-    // / dots) and the off-screen ones are clipped — no peeking neighbors. Cards
-    // render `chromeless` so they sit flat on the widget glass (single surface
-    // depth) rather than a card-inside-a-card.
+    // / dots) and the off-screen ones are clipped. Flashcards render `chromeless` so
+    // they sit flat on the widget glass (classic look); infographics bring their own
+    // elevated card surface.
     if (variant === 'window') {
         return (
             <div className="relative flex w-full flex-col items-center">
-                <CardCarousel
-                    showDots={count > 1}
-                    className="z-10 w-full max-w-[min(94vw,30rem)] rounded-[1.75rem] bg-white ring-1 ring-black/[0.06] shadow-[0_14px_44px_-12px_rgba(15,23,42,0.28)] px-6 py-6 md:px-7 md:py-7"
-                >
+                <CardCarousel showDots={count > 1} className="z-10 w-full max-w-[min(94vw,30rem)]">
                     {validCards.map((card) => (
-                        <div key={card.id} className="flex w-full items-center justify-center">
-                            <Flashcard
-                                {...card.cardData}
-                                layout="default"
-                                chromeless
-                                card_index={card.cardData?.card_index ?? 0}
-                                layoutId={card.id}
-                                shouldStreamText={card.id === latestFlashcardId}
-                            />
+                        <div key={card.id} className="flex w-full h-full items-start">
+                            {renderCard(card, true)}
                         </div>
                     ))}
                 </CardCarousel>
@@ -81,7 +99,7 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
 
                         // Determine internal Flashcard layout based on grid context — NOT from backend
                         let layoutProp: 'default' | 'horizontal' = 'default';
-                        if (count === 1 && hasMedia) {
+                        if (count === 1 && hasMedia && card.type === 'flashcard') {
                             layoutProp = 'horizontal';
                         }
 
@@ -105,13 +123,21 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
                                 transition={{ type: "spring", stiffness: 180, damping: 22 }}
                                 className={itemClass}
                             >
-                                <Flashcard
-                                    {...card.cardData}
-                                    layout={layoutProp}
-                                    card_index={card.cardData?.card_index ?? 0}
-                                    layoutId={card.id}
-                                    shouldStreamText={card.id === latestFlashcardId}
-                                />
+                                {card.type === 'infographic' ? (
+                                    <InfographicRenderer
+                                        schema={card.infographicData!}
+                                        card_index={card.infographicData?.card_index ?? 0}
+                                        layoutId={card.id}
+                                    />
+                                ) : (
+                                    <Flashcard
+                                        {...card.cardData!}
+                                        layout={layoutProp}
+                                        card_index={card.cardData?.card_index ?? 0}
+                                        layoutId={card.id}
+                                        shouldStreamText={card.id === latestFlashcardId}
+                                    />
+                                )}
                             </motion.div>
                         );
                     })}

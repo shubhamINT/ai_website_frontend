@@ -67,13 +67,17 @@ export function useAgentMessages() {
                 const data = JSON.parse(strData);
                 console.log('--- INCOMING DATA CHANNEL MESSAGE ---', { topic, data });
 
-                // Check either topic or data type for flashcards
-                if (topic === 'ui.flashcard' || topic === 'ui.rich_card'
-                    || data.type === 'flashcard' || data.type === 'rich_card') {
+                // Visual cards — routed by payload `type` (topic is only a fallback).
+                // Both topics can carry a `flashcard` or an `infographic`; `rich_card`
+                // is the legacy alias for `infographic`.
+                if (topic === 'ui.flashcard' || topic === 'ui.infographic'
+                    || data.type === 'flashcard' || data.type === 'infographic'
+                    || data.type === 'rich_card' || data.type === 'end_of_stream') {
                     const id = `card-${Date.now()}-${Math.random()}`;
                     const streamId = data.stream_id || null;
 
-                    console.log('--- PROCESSING FLASHCARD ---', {
+                    console.log('--- PROCESSING CARD ---', {
+                        cardType: data.type,
                         streamId,
                         card_index: data.card_index,
                         title: data.title
@@ -88,63 +92,78 @@ export function useAgentMessages() {
                         return;
                     }
 
+                    // Infographic (or legacy rich_card) vs. image flashcard
+                    const isInfographic = data.type === 'infographic' || data.type === 'rich_card'
+                        || (topic === 'ui.infographic' && data.type !== 'flashcard');
+
                     updateMessages((prev) => {
                         const next = new Map(prev);
 
-                        // Find the current active stream_id from existing flashcards
-                        const existingCards = Array.from(next.values()).filter(m => m.type === 'flashcard');
-                        const currentStreamId = existingCards.length > 0
-                            ? existingCards[existingCards.length - 1].cardData?.stream_id
-                            : null;
+                        // Flashcards and infographics share one deck — group/clear both.
+                        const isCardMsg = (m: ChatMessage) => m.type === 'flashcard' || m.type === 'infographic';
+                        const cardStreamId = (m: ChatMessage) => m.cardData?.stream_id ?? m.infographicData?.stream_id ?? null;
 
-                        console.log('--- STREAM COMPARISON ---', {
-                            newStreamId: streamId,
-                            currentStreamId: currentStreamId,
-                            existingCardsCount: existingCards.length,
-                            willClear: streamId && streamId !== currentStreamId
-                        });
+                        const existingCards = Array.from(next.values()).filter(isCardMsg);
+                        const currentStreamId = existingCards.length > 0
+                            ? cardStreamId(existingCards[existingCards.length - 1])
+                            : null;
 
                         // If stream ID is different, clear previous cards
                         if (streamId && currentStreamId && streamId !== currentStreamId) {
                             console.log('--- CLEARING OLD STREAM ---', { oldStream: currentStreamId, newStream: streamId });
                             for (const [key, msg] of next.entries()) {
-                                if (msg.type === 'flashcard') {
+                                if (isCardMsg(msg)) {
                                     next.delete(key);
                                 }
                             }
                         }
 
-                        next.set(id, {
-                            id,
-                            type: 'flashcard',
-                            cardData: {
-                                title: data.title || "Information",
-                                // rich_card sends markdown in `content`; flashcard in `value`
-                                value: data.value || data.content || JSON.stringify(data),
-                                stream_id: streamId,
-                                card_index: data.card_index,
-                                visual_intent: data.visual_intent,
-                                icon: data.icon,
-                                media: data.media ? {
-                                    urls: data.media.urls,
-                                    query: data.media.query,
-                                    source: data.media.source,
-                                } : undefined,
-                                // Rich body passthrough — missing → markdown fallback
-                                content_kind: data.content_kind,
-                                content: data.content,
-                                // rich_card extras
-                                bullets: data.bullets?.length ? data.bullets : undefined,
-                                chips: data.chips?.length ? data.chips : undefined,
-                            },
-                            sender: 'agent',
-                            timestamp: Date.now(),
-                            isInterim: false
-                        });
-
-                        console.log('--- CARDS AFTER ADD ---', {
-                            totalCards: Array.from(next.values()).filter(m => m.type === 'flashcard').length
-                        });
+                        if (isInfographic) {
+                            next.set(id, {
+                                id,
+                                type: 'infographic',
+                                infographicData: {
+                                    title: data.title,
+                                    visual_intent: data.visual_intent,
+                                    icon: data.icon,
+                                    hero: data.hero,
+                                    sections: data.sections,
+                                    chips: data.chips?.length ? data.chips : undefined,
+                                    stream_id: streamId,
+                                    card_index: data.card_index,
+                                    recalled: data.recalled,
+                                },
+                                sender: 'agent',
+                                timestamp: Date.now(),
+                                isInterim: false
+                            });
+                        } else {
+                            next.set(id, {
+                                id,
+                                type: 'flashcard',
+                                cardData: {
+                                    title: data.title || "Information",
+                                    value: data.value || JSON.stringify(data),
+                                    stream_id: streamId,
+                                    card_index: data.card_index,
+                                    visual_intent: data.visual_intent,
+                                    icon: data.icon,
+                                    media: data.media ? {
+                                        urls: data.media.urls,
+                                        query: data.media.query,
+                                        source: data.media.source,
+                                    } : undefined,
+                                    // Rich body passthrough — missing → markdown fallback
+                                    content_kind: data.content_kind,
+                                    content: data.content,
+                                    bullets: data.bullets?.length ? data.bullets : undefined,
+                                    chips: data.chips?.length ? data.chips : undefined,
+                                },
+                                sender: 'agent',
+                                timestamp: Date.now(),
+                                isInterim: false
+                            });
+                        }
 
                         return next;
                     });

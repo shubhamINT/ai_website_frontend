@@ -9,6 +9,7 @@ export function useVisualMessageFilters(messages: ChatMessage[]) {
         // location_request is intentionally excluded — it's handled silently via useEffect
         const visualMsgs = messages.filter(m =>
             m.type === 'flashcard' ||
+            m.type === 'infographic' ||
             m.type === 'contact_form' ||
             m.type === 'contact_form_submit' ||
             m.type === 'meeting_form' ||
