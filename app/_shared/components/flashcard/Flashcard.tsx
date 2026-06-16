@@ -47,7 +47,7 @@ type FullFlashcardProps = FlashcardProps & FlashcardStyle;
 interface RichBodyProps<T> { content: T; colorText: string; }
 
 const StatBody = ({ content }: RichBodyProps<StatContent>) => (
-    <div className="grid grid-cols-2 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 gap-4 @md:gap-6">
         {content.items?.map((item, i) => (
             <motion.div
                 key={i}
@@ -56,7 +56,7 @@ const StatBody = ({ content }: RichBodyProps<StatContent>) => (
                 transition={{ delay: i * 0.08, type: 'spring', stiffness: 200, damping: 22 }}
                 className="flex flex-col"
             >
-                <span className="font-display text-3xl md:text-5xl font-semibold leading-none tracking-tight text-zinc-900">
+                <span className="font-display text-3xl @md:text-5xl font-semibold leading-none tracking-tight text-zinc-900">
                     {item.value}
                     {item.trend && (
                         <span className={`ml-1 align-middle ${item.trend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -64,7 +64,7 @@ const StatBody = ({ content }: RichBodyProps<StatContent>) => (
                         </span>
                     )}
                 </span>
-                <span className="mt-1 text-sm md:text-base text-zinc-500">
+                <span className="mt-1 text-sm @md:text-base text-zinc-500">
                     {item.label}
                 </span>
             </motion.div>
@@ -88,11 +88,11 @@ const StepsBody = ({ content, colorText }: RichBodyProps<StepsContent>) => (
                         : i + 1}
                 </span>
                 <div className="min-w-0">
-                    <p className="text-base md:text-lg font-semibold leading-snug text-zinc-900">
+                    <p className="text-base @md:text-lg font-semibold leading-snug text-zinc-900">
                         {step.title}
                     </p>
                     {step.detail && (
-                        <p className="mt-0.5 text-sm md:text-base text-zinc-600">
+                        <p className="mt-0.5 text-sm @md:text-base text-zinc-600">
                             {step.detail}
                         </p>
                     )}
@@ -111,17 +111,17 @@ const LogoBody = ({ content, colorText }: RichBodyProps<LogoContent>) => (
     >
         {content.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={content.image_url} alt={content.name} className="h-16 w-auto object-contain md:h-20" />
+            <img src={content.image_url} alt={content.name} className="h-16 w-auto object-contain @md:h-20" />
         ) : content.icon ? (
             <span className={colorText}>
-                <SmartIcon iconRef={content.icon} type="static" className="h-12 w-12 md:h-16 md:w-16" />
+                <SmartIcon iconRef={content.icon} type="static" className="h-12 w-12 @md:h-16 @md:w-16" />
             </span>
         ) : null}
-        <span className="font-display text-xl md:text-2xl font-semibold text-zinc-900">
+        <span className="font-display text-xl @md:text-2xl font-semibold text-zinc-900">
             {content.name}
         </span>
         {content.caption && (
-            <span className="text-sm md:text-base text-zinc-500">
+            <span className="text-sm @md:text-base text-zinc-500">
                 {content.caption}
             </span>
         )}
@@ -232,7 +232,7 @@ export const Flashcard = React.memo(({
         return (
             <div className={`
                 markdown-render md-stagger text-zinc-700
-                text-[15px] md:text-lg leading-relaxed tracking-[-0.005em]
+                text-[15px] @md:text-lg leading-relaxed tracking-[-0.005em]
                 ${layout === 'centered' ? 'text-center [&>*]:text-center' : ''}
             `}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>{text}</ReactMarkdown>
@@ -250,9 +250,9 @@ export const Flashcard = React.memo(({
             exit="exit"
             variants={cardVariants}
             className={`
-                relative overflow-visible
+                relative overflow-visible @container/card
                 ${chromeless ? '' : 'backdrop-blur-md'}
-                ${chromeless ? '' : 'p-5 md:p-8'} w-full
+                ${chromeless ? '' : 'p-5 @md:p-8'} w-full
                 group flex flex-col ${chromeless ? '' : 'h-full'} transition-colors
             `}
         >
@@ -260,25 +260,29 @@ export const Flashcard = React.memo(({
                 stay legible on the blue surface — reads as floating, not a card box.
                 `chromeless` (widget) drops it so the card sits flat on the window glass. */}
             {!chromeless && (
-                <div className="pointer-events-none absolute -inset-3 md:-inset-5 -z-10 rounded-[2rem] md:rounded-[2.5rem] bg-[radial-gradient(120%_120%_at_50%_30%,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.42)_45%,rgba(255,255,255,0)_78%)]" />
+                <div className="pointer-events-none absolute -inset-3 @md:-inset-5 -z-10 rounded-[2rem] @md:rounded-[2.5rem] bg-[radial-gradient(120%_120%_at_50%_30%,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.42)_45%,rgba(255,255,255,0)_78%)]" />
             )}
             {/* Ambient color glow — the floating halo (non-chromeless only) */}
             {!chromeless && (
-                <div className={`pointer-events-none absolute -right-16 -top-16 -z-10 h-40 w-40 md:h-64 md:w-64 rounded-full ${colors.glow} blur-[40px] md:blur-[70px] opacity-20 md:opacity-30`} />
+                <div className={`pointer-events-none absolute -right-16 -top-16 -z-10 h-40 w-40 @md:h-64 @md:w-64 rounded-full ${colors.glow} blur-[40px] @md:blur-[70px] opacity-20 @md:opacity-30`} />
             )}
 
             <div className={`relative z-10 flex flex-col
-                ${layout === 'horizontal' ? 'gap-4 md:flex-row md:items-center md:gap-6' : 'gap-4 md:gap-5'}
+                ${layout === 'horizontal' ? 'gap-4 @md:flex-row @md:items-center @md:gap-6' : 'gap-4 @md:gap-5'}
                 ${layout === 'centered'   ? 'justify-center text-center items-center' : ''}
             `}>
 
                 {/* Horizontal media (left side) */}
                 {showHorizontalMedia && (
-                    <div className="w-full shrink-0 md:w-[min(40%,20rem)] md:max-w-[20rem]">
+                    <div className="w-full shrink-0 @md:w-[min(40%,20rem)] @md:max-w-[20rem]">
                         <RichMedia
                             urls={media?.urls}
                             query={media?.query}
                             source={media?.source}
+                            orientation={media?.orientation}
+                            width={media?.width}
+                            height={media?.height}
+                            poster={media?.poster}
                             alt={title}
                         />
                     </div>
@@ -287,21 +291,21 @@ export const Flashcard = React.memo(({
                 <div className={`flex flex-col ${layout === 'horizontal' ? 'min-w-0 flex-1 justify-center' : 'w-full'}`}>
                     {/* Header row: icon + title + status indicator */}
                     <div className={`flex items-start ${layout === 'centered' ? 'justify-center w-full relative' : 'justify-between'}`}>
-                        <div className={`flex items-center gap-2 md:gap-3 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
+                        <div className={`flex items-center gap-2 @md:gap-3 ${layout === 'centered' ? 'flex-col gap-3' : ''}`}>
                             <div className={`
-                                flex shrink-0 h-9 w-9 items-center justify-center rounded-xl md:h-11 md:w-11
+                                flex shrink-0 h-9 w-9 items-center justify-center rounded-xl @md:h-11 @md:w-11
                                 ${colors.bg} ${colors.text} ring-1 ${colors.ring} shadow-sm
                                 transition-all duration-300 group-hover:scale-110
                             `}>
                                 <SmartIcon
                                     iconRef={typeof icon === 'object' ? icon.ref : (icon || 'info')}
                                     type="static"
-                                    className="w-5 h-5 md:w-6 md:h-6"
+                                    className="w-5 h-5 @md:w-6 @md:h-6"
                                 />
                             </div>
 
                             <div>
-                                <h3 className="font-display text-lg md:text-2xl font-semibold leading-tight tracking-tight text-zinc-900">
+                                <h3 className="font-display text-lg @md:text-2xl font-semibold leading-tight tracking-tight text-zinc-900">
                                     {title}
                                 </h3>
                                 {/* Accent underline — the blue bar under the title (mockup) */}
@@ -334,6 +338,10 @@ export const Flashcard = React.memo(({
                                 urls={media?.urls}
                                 query={media?.query}
                                 source={media?.source}
+                                orientation={media?.orientation}
+                                width={media?.width}
+                                height={media?.height}
+                                poster={media?.poster}
                                 alt={title}
                             />
                         </div>
@@ -364,7 +372,7 @@ export const Flashcard = React.memo(({
                     {bullets && bullets.length > 0 && (
                         <ul className="md-stagger mt-5 flex list-none flex-col gap-2.5 pl-0">
                             {bullets.map((b, i) => (
-                                <li key={i} className="flex items-start gap-3 text-[15px] leading-[1.5] text-zinc-700 md:text-base">
+                                <li key={i} className="flex items-start gap-3 text-[15px] leading-[1.5] text-zinc-700 @md:text-base">
                                     <CheckDot />
                                     <span className="min-w-0">{b}</span>
                                 </li>

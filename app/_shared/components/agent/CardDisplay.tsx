@@ -58,7 +58,7 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
             <div className="relative flex w-full flex-col items-center">
                 <CardCarousel showDots={count > 1} className="z-10 w-full max-w-[min(94vw,30rem)]">
                     {validCards.map((card) => (
-                        <div key={card.id} className="flex w-full h-full items-start">
+                        <div key={card.id} className="flex w-full items-start">
                             {renderCard(card, true)}
                         </div>
                     ))}

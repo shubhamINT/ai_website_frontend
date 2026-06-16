@@ -206,3 +206,35 @@ The DevOps card in §2 is the target shape: header + illustrated hero + `icon_bu
 4-tile `stats` + `cta_banner` + chips. Build cards at **that density**. When in doubt,
 add a `stats` row and a `cta_banner` — they carry the most visual weight for the least
 text.
+
+---
+
+## 8. Media (images & video) — orientation
+
+This applies to media on **flashcards** (`cardData.media`), not infographics. The
+frontend now sizes every image/video frame to the media's **real aspect ratio** (read on
+load) and contains it without cropping — portrait, landscape, and square all render
+correctly; portrait clamps to a max height with a soft blurred backdrop filling the side
+gutters. YouTube/Vimeo embeds stay 16:9.
+
+**Nothing is required** — orientation is detected client-side. But these OPTIONAL hints
+remove the brief first-frame reflow and let the frame reserve correct space before load:
+
+```jsonc
+"media": {
+  "urls": ["https://…/Abhishek-Rungta-INT-Intro.mp4"],
+  "orientation": "portrait",   // "portrait" | "landscape" | "square" — optional hint
+  "width": 1080,                // optional — exact pixels, even better than orientation
+  "height": 1920,
+  "poster": "https://…/intro-poster.jpg"  // optional video thumbnail shown while buffering
+}
+```
+
+Rules for the agent:
+- Send **direct file URLs** (`.mp4`, `.webm`, `.mov`, …) or YouTube/Vimeo links. Don't
+  pre-crop or letterbox the asset yourself — the frontend handles framing.
+- If you know the asset is a vertical/portrait clip (e.g. a phone-shot intro), set
+  `orientation: "portrait"` (or send `width`/`height`). The card will reserve a portrait
+  frame instead of flashing 16:9 first.
+- `poster` is nice for video so the card isn't blank while the clip buffers.
+- These fields are additive and safe to omit; older payloads keep working.

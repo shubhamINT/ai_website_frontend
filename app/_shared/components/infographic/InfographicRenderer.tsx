@@ -6,6 +6,7 @@ import { INTENT_COLORS, chipIcon } from '../flashcard/flashcardThemes';
 import { cardVariants } from '../flashcard/flashcardAnimations';
 import { PresetGraphic } from './PresetGraphic';
 import { SectionBlock } from './blocks';
+import { ACCENT_RAIL, ACCENT_UNDERLINE, SURFACE } from '../designTokens';
 
 // ─── Infographic card ──────────────────────────────────────────────────────
 // The composed, text-led card. Unlike the flat flashcard, it renders its OWN
@@ -39,10 +40,10 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
             animate="visible"
             exit="exit"
             variants={cardVariants}
-            className="group relative flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] bg-white ring-1 ring-black/[0.06] shadow-[0_18px_50px_-16px_rgba(15,23,42,0.30)]"
+            className={`group relative @container/card flex h-full w-full flex-col overflow-hidden ${SURFACE}`}
         >
             {/* Top accent rail — the signature blue→emerald premium stripe */}
-            <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-400" />
+            <div className={`h-1 w-full ${ACCENT_RAIL}`} />
 
             {/* Ambient corner glow tinted by intent */}
             <div className={`pointer-events-none absolute -right-20 -top-16 h-48 w-48 rounded-full ${colors.glow} blur-[60px] opacity-40`} />
@@ -58,22 +59,22 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
                 }}
             />
 
-            <div className="relative z-10 flex flex-1 flex-col gap-5 p-5 md:gap-6 md:p-7">
+            <div className="relative z-10 flex flex-1 flex-col gap-5 p-5 @md:gap-6 @md:p-7">
                 {/* Header: icon badge + title + accent underline */}
                 {headerTitle && (
-                    <div className="flex items-start gap-3 md:gap-3.5">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl md:h-12 md:w-12 ${colors.bg} ${colors.text} ring-1 ${colors.ring} shadow-sm transition-transform duration-300 group-hover:scale-105`}>
-                            <SmartIcon iconRef={headerIcon} type="static" className="h-5 w-5 md:h-6 md:w-6" />
+                    <div className="flex items-start gap-3 @md:gap-3.5">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl @md:h-12 @md:w-12 ${colors.bg} ${colors.text} ring-1 ${colors.ring} shadow-sm transition-transform duration-300 group-hover:scale-105`}>
+                            <SmartIcon iconRef={headerIcon} type="static" className="h-5 w-5 @md:h-6 @md:w-6" />
                         </div>
                         <div className="min-w-0 pt-0.5">
-                            <h3 className="font-display text-xl font-semibold leading-tight tracking-tight text-zinc-900 md:text-2xl">
+                            <h3 className="font-display text-xl font-semibold leading-tight tracking-tight text-zinc-900 @md:text-2xl">
                                 {headerTitle}
                             </h3>
                             <motion.span
                                 initial={{ scaleX: 0 }}
                                 animate={{ scaleX: 1 }}
                                 transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                                className="mt-2 block h-[3px] w-10 origin-left rounded-full bg-gradient-to-r from-blue-500 to-emerald-400"
+                                className={`mt-2 block h-[3px] w-10 origin-left rounded-full ${ACCENT_UNDERLINE}`}
                             />
                         </div>
                     </div>
@@ -87,16 +88,16 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 24 }}
-                        className={`relative flex flex-col items-center gap-5 overflow-hidden rounded-2xl ${colors.bg} px-5 py-6 text-center ring-1 ${colors.ring} md:flex-row md:gap-7 md:text-left`}
+                        className={`relative flex flex-col items-center gap-5 overflow-hidden rounded-2xl ${colors.bg} px-5 py-6 text-center ring-1 ${colors.ring} @md:flex-row @md:gap-7 @md:text-left`}
                     >
                         {hero?.description && (
-                            <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-zinc-600 md:text-base md:leading-relaxed">
+                            <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-zinc-600 @md:text-base @md:leading-relaxed">
                                 {hero.description}
                             </p>
                         )}
                         {hero?.graphic && (
                             <div className="flex shrink-0 items-center justify-center">
-                                <PresetGraphic name={hero.graphic} className="h-28 w-auto md:h-40" />
+                                <PresetGraphic name={hero.graphic} className="h-28 w-auto @md:h-40" />
                             </div>
                         )}
                     </motion.div>
@@ -104,7 +105,7 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
 
                 {/* Ordered section blocks — staggered mount */}
                 {sections.length > 0 && (
-                    <div className="flex flex-col gap-5 md:gap-6">
+                    <div className="flex flex-col gap-5 @md:gap-6">
                         {sections.map((section, i) => (
                             <motion.div
                                 key={i}

@@ -5,6 +5,13 @@ export interface FlashcardMedia {
     urls?: string[];
     query?: string;
     source?: string;
+    // Optional aspect hints — let the frame reserve correct space before load
+    // (avoids a first-frame 16:9 flash). All detected client-side if absent.
+    orientation?: 'portrait' | 'landscape' | 'square';
+    width?: number;
+    height?: number;
+    /** Video thumbnail shown while the clip buffers. */
+    poster?: string;
 }
 
 // Shared accent enum — maps to a theme color (see flashcardThemes INTENT_COLORS).

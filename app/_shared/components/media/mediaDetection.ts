@@ -14,9 +14,9 @@ export const detectMediaType = (url: string): MediaType => {
 
 export const isVideoType = (t: MediaType) => t === 'video' || t === 'youtube' || t === 'vimeo';
 
-// Derive aspect ratio: perfect 16:9 for everything to guarantee grid symmetry
-export const getAspectClass    = (_t: MediaType) => 'aspect-video';
-export const getMinHeightClass = (_t: MediaType) => '';
+// Aspect ratio is no longer forced — RichMedia sizes the frame to each media's
+// real width/height (read on load), clamping portrait to a max height. Embeds
+// (YouTube / Vimeo) render at a fixed 16:9.
 
 // ─── YouTube / Vimeo ID extraction ────────────────────────────────────────────
 
