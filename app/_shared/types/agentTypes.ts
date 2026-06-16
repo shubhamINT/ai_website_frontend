@@ -51,7 +51,12 @@ export type PresetGraphicKey =
     | 'cicd_pipeline'
     | 'cloud_stack'
     | 'ai_workflow'
-    | 'security_shield';
+    | 'security_shield'
+    | 'growth_chart'
+    | 'web_development'
+    | 'data_analytics'
+    | 'team_collaboration'
+    | 'digital_marketing';
 
 export interface InfographicHero {
     icon?: string;

@@ -73,8 +73,9 @@ gradient dividers); `bullets`→check list, `chips`→footer pills (`chipIcon`).
 (icon + title), optional `hero` (description + `PresetGraphic`), ordered `sections[]`
 (`markdown` | `bullet_list` | `icon_bullets` | `stats` | `cta_banner` via `blocks.tsx`),
 and `chips`. `PresetGraphic` maps a key (`devops_loop`, `cicd_pipeline`, `cloud_stack`,
-`ai_workflow`, `security_shield`) → a bundled animated SVG, and renders nothing on an
-unknown key; keep the key list in sync with the backend prompt. Unknown section types
+`ai_workflow`, `security_shield`, `growth_chart`, `web_development`, `data_analytics`,
+`team_collaboration`, `digital_marketing`) → a bundled animated SVG illustration, and
+renders nothing on an unknown key; keep the key list in sync with the backend prompt. Unknown section types
 degrade to a markdown block. `visual_intent` (`neutral|urgent|success|warning|processing`)
 picks the accent via `INTENT_COLORS`. Entrance is Apple-style: `.md-stagger` cascade +
 `cardVariants` spring.

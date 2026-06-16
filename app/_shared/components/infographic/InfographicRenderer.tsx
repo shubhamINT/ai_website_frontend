@@ -46,6 +46,17 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
 
             {/* Ambient corner glow tinted by intent */}
             <div className={`pointer-events-none absolute -right-20 -top-16 h-48 w-48 rounded-full ${colors.glow} blur-[60px] opacity-40`} />
+            {/* Soft top-light + faint dot texture for depth — keeps bare cards from reading flat */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white via-white to-slate-50/60" />
+            <div
+                className="pointer-events-none absolute inset-0 opacity-[0.5]"
+                style={{
+                    backgroundImage: 'radial-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)',
+                    backgroundSize: '22px 22px',
+                    maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 75%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 75%)',
+                }}
+            />
 
             <div className="relative z-10 flex flex-1 flex-col gap-5 p-5 md:gap-6 md:p-7">
                 {/* Header: icon badge + title + accent underline */}
@@ -68,22 +79,24 @@ export const InfographicRenderer = React.memo(({ schema, card_index = 0, layoutI
                     </div>
                 )}
 
-                {/* Hero region — description + preset graphic on a soft tinted panel */}
+                {/* Hero region — description + preset graphic on a soft tinted panel.
+                    The graphic is a hero centrepiece, not a thumbnail: it gets its own
+                    generous space and grows on wide cards. */}
                 {heroHasBody && (
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 24 }}
-                        className={`flex flex-col items-center gap-4 rounded-2xl ${colors.bg} px-4 py-5 text-center ring-1 ${colors.ring} md:flex-row md:gap-6 md:text-left`}
+                        className={`relative flex flex-col items-center gap-5 overflow-hidden rounded-2xl ${colors.bg} px-5 py-6 text-center ring-1 ${colors.ring} md:flex-row md:gap-7 md:text-left`}
                     >
                         {hero?.description && (
-                            <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-zinc-600 md:text-base">
+                            <p className="min-w-0 flex-1 text-[15px] leading-relaxed text-zinc-600 md:text-base md:leading-relaxed">
                                 {hero.description}
                             </p>
                         )}
                         {hero?.graphic && (
-                            <div className="shrink-0">
-                                <PresetGraphic name={hero.graphic} className="h-20 w-auto md:h-24" />
+                            <div className="flex shrink-0 items-center justify-center">
+                                <PresetGraphic name={hero.graphic} className="h-28 w-auto md:h-40" />
                             </div>
                         )}
                     </motion.div>
