@@ -76,7 +76,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({ data }) => {
                     <div className="space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/80">Calendar Invite</span>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
-                            {data.subject || 'Untitled Meeting'}
+                            {data.subject || '(No subject)'}
                         </h2>
                     </div>
 
