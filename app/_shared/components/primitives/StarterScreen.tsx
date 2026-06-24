@@ -60,7 +60,7 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
         const speaking = Boolean(agentText && agentText.trim());
         return (
             <div className="flex w-full max-w-xl flex-1 flex-col">
-                {/* Middle — the greeting, swapped for the live transcript as Vani speaks */}
+                {/* Middle — the greeting, swapped for the live transcript as Vaani speaks */}
                 <div className="flex flex-1 items-center justify-center px-6">
                     <AnimatePresence mode="wait">
                         {speaking ? (
@@ -88,7 +88,7 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
                             >
                                 <span className="text-blue-600">Welcome to INT.</span>
                                 <br />
-                                <span className="text-slate-900">I am Vani,</span>{' '}
+                                <span className="text-slate-900">I am Vaani,</span>{' '}
                                 <span className="text-blue-600">do let me know how can I help you?</span>
                             </motion.h1>
                         )}

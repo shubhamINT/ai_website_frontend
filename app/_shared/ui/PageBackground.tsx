@@ -1,6 +1,6 @@
 /**
  * PageBackground — the soft radial-gradient backdrop shared by the landing
- * and Vani pages. One copy so the brand background can't drift between pages.
+ * and Vaani pages. One copy so the brand background can't drift between pages.
  */
 export function PageBackground() {
     return (

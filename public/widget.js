@@ -1,24 +1,24 @@
 /**
- * Vani embed loader.
+ * Vaani embed loader.
  *
  * Drop this on ANY website with one line:
- *   <script src="https://YOUR-VANI-HOST/widget.js" async></script>
+ *   <script src="https://YOUR-Vaani-HOST/widget.js" async></script>
  *
  * It injects a single <iframe> pointing at /embed and nothing else — no global
- * CSS, no extra DOM in your tree, no library. Everything Vani draws (launcher
+ * CSS, no extra DOM in your tree, no library. Everything Vaani draws (launcher
  * orb + chat card) lives inside that cross-origin iframe, so it can never
  * collide with the host page's styles or scripts, and the host can never reach
- * into Vani. The iframe resizes itself by listening to postMessage from /embed:
- *     { type: 'vani:resize', mode: 'collapsed' | 'open', width }
+ * into Vaani. The iframe resizes itself by listening to postMessage from /embed:
+ *     { type: 'Vaani:resize', mode: 'collapsed' | 'open', width }
  *
  * Two ways to use it:
  *   1. Plain <script> (external sites): the loader AUTO-MOUNTS on load. Optional
  *      attributes on the <script> tag:
- *        data-vani-src="https://other-host"   where /embed is served from
+ *        data-Vaani-src="https://other-host"   where /embed is served from
  *                                              (defaults to this script's origin)
- *   2. Manual (our own Next.js /vani page, a single-page app): add
- *      data-vani-manual="true" to skip auto-mount, then drive it yourself:
- *        var instance = window.VaniWidget.mount({ origin: location.origin });
+ *   2. Manual (our own Next.js /Vaani page, a single-page app): add
+ *      data-Vaani-manual="true" to skip auto-mount, then drive it yourself:
+ *        var instance = window.VaaniWidget.mount({ origin: location.origin });
  *        // ...later, on route change:
  *        instance.destroy();
  *      A SPA must do this — the iframe lives on document.body, outside the app's
@@ -65,7 +65,7 @@
     /**
      * Resolve where /embed is served from. Priority:
      *   1. explicit opts.origin (our SPA passes location.origin)
-     *   2. data-vani-src on the <script> tag
+     *   2. data-Vaani-src on the <script> tag
      *   3. the script's own origin (plain external <script>)
      *   4. the current page origin (final fallback)
      * Never returns "" — an empty origin makes the postMessage origin check below
@@ -73,8 +73,8 @@
      */
     function resolveOrigin(opts, script) {
         if (opts && opts.origin) return opts.origin;
-        if (script && script.getAttribute("data-vani-src")) {
-            return script.getAttribute("data-vani-src");
+        if (script && script.getAttribute("data-Vaani-src")) {
+            return script.getAttribute("data-Vaani-src");
         }
         if (script && script.src) {
             try {
@@ -87,7 +87,7 @@
     }
 
     /**
-     * Mount one Vani widget. Returns a handle with destroy() that removes the
+     * Mount one Vaani widget. Returns a handle with destroy() that removes the
      * iframe and every listener it registered — safe to call on SPA teardown.
      */
     function mountWidget(opts, scriptEl) {
@@ -98,7 +98,7 @@
 
         var iframe = document.createElement("iframe");
         iframe.src = origin + "/embed";
-        iframe.title = "Vani assistant";
+        iframe.title = "Vaani assistant";
         iframe.allow = "microphone; autoplay; clipboard-write";
         iframe.setAttribute("allowtransparency", "true");
 
@@ -179,14 +179,14 @@
             iframe.contentWindow.postMessage(
                 // freeSize lets /embed switch to the fluid card immediately on open, so
                 // it never flashes the 544px preset before the host applies the saved box.
-                { type: "vani:host", isMobile: isMobile(), freeSize: state.free || null },
+                { type: "Vaani:host", isMobile: isMobile(), freeSize: state.free || null },
                 origin
             );
         }
 
         // ── Free drag-resize ──────────────────────────────────────────────────────
         // The whole gesture runs inside the iframe with native pointer capture
-        // (ChatWindowShell). The iframe posts `vani:resize-free` messages with the
+        // (ChatWindowShell). The iframe posts `Vaani:resize-free` messages with the
         // desired box; we just apply them here — no host overlay needed.
 
         // Resize / ready / free-drag requests from /embed. Named so destroy() can
@@ -196,12 +196,12 @@
             var data = event.data;
             if (!data) return;
             // /embed (re)mounted — answer with the current form factor.
-            if (data.type === "vani:ready") {
+            if (data.type === "Vaani:ready") {
                 notifyForm();
                 return;
             }
             // The iframe drives the whole drag gesture; we just apply the posted box.
-            if (data.type === "vani:resize-free") {
+            if (data.type === "Vaani:resize-free") {
                 if (data.phase === "move" && typeof data.width === "number" && typeof data.height === "number") {
                     iframe.style.transition = "none";
                     applyFree(data.width, data.height);
@@ -217,7 +217,7 @@
                 }
                 return;
             }
-            if (data.type !== "vani:resize") return;
+            if (data.type !== "Vaani:resize") return;
             state.mode = data.mode === "open" ? "open" : "collapsed";
             if (typeof data.width === "number") state.width = data.width;
             // The preset path wins over a custom drag; clear free so the preset takes effect.
@@ -264,19 +264,19 @@
 
     // Public API for manual (SPA) callers — they always pass opts.origin, so no
     // <script> element is needed (and currentScript would be null here anyway).
-    window.VaniWidget = window.VaniWidget || {
+    window.VaaniWidget = window.VaaniWidget || {
         mount: function (opts) {
             return mountWidget(opts, null);
         },
     };
 
     // Auto-mount for plain external <script> usage. Skipped when the tag opts out
-    // with data-vani-manual="true" (our /vani page drives mount/destroy itself).
-    // The __vaniWidgetLoaded guard only dedupes an accidentally double-pasted
+    // with data-Vaani-manual="true" (our /Vaani page drives mount/destroy itself).
+    // The __VaaniWidgetLoaded guard only dedupes an accidentally double-pasted
     // snippet — it lives here, NOT inside mountWidget, so manual mounts are free.
-    var manual = bootScript && bootScript.getAttribute("data-vani-manual") === "true";
-    if (!manual && !window.__vaniWidgetLoaded) {
-        window.__vaniWidgetLoaded = true;
+    var manual = bootScript && bootScript.getAttribute("data-Vaani-manual") === "true";
+    if (!manual && !window.__VaaniWidgetLoaded) {
+        window.__VaaniWidgetLoaded = true;
         mountWidget(undefined, bootScript);
     }
 })();

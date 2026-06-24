@@ -10,7 +10,7 @@ interface AgentInterfaceProps {
     onDisconnect: () => void;
     /**
      * 'immersive' — full-window experience (/dynamic). Default.
-     * 'window'    — compact, tightened spacing for the Vani chat window / embed drawer.
+     * 'window'    — compact, tightened spacing for the Vaani chat window / embed drawer.
      */
     variant?: 'immersive' | 'window';
     /**
@@ -28,7 +28,7 @@ interface AgentInterfaceProps {
  *   <Canvas>     — the visual board (cards, maps, forms)
  *   <VoiceDock>  — the control bar (visualizer, mic, text input)
  * Both read from the same message stream; neither works alone. Used by /dynamic
- * (immersive), the Vani window, and the /embed widget.
+ * (immersive), the Vaani window, and the /embed widget.
  */
 export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, variant = 'immersive', fluid = false }) => {
     const {
@@ -47,7 +47,7 @@ export const AgentInterface: React.FC<AgentInterfaceProps> = ({ onDisconnect, va
     const visuals = useVisualMessageFilters(messages);
     const { locationRequestMessage } = visuals;
 
-    // Latest thing Vani has said — shown centered on the welcome screen as she speaks.
+    // Latest thing Vaani has said — shown centered on the welcome screen as she speaks.
     const liveAgentMessage = useMemo(
         () => messages.findLast(m => m.type === 'text' && m.sender === 'agent') ?? null,
         [messages]

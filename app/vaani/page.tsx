@@ -1,17 +1,17 @@
 "use client";
 
 /**
- * Vani — chat-window experience.
+ * Vaani — chat-window experience.
  *
  * Static INT Global hero (video background, navbar, client logo marquee) with a
  * floating voice-bot launcher. The launcher is the SAME public/widget.js that
- * external sites embed (it iframes /embed) — mounted here via <VaniWidget />.
+ * external sites embed (it iframes /embed) — mounted here via <VaaniWidget />.
  * /dynamic keeps the immersive full-window experience.
  */
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { VaniWidget } from "./_components/VaniWidget";
+import { VaaniWidget } from "./_components/VaaniWidget";
 
 // Background video. Change YT_VIDEO_ID to swap the clip.
 // NOTE: a YouTube embed always carries some player chrome; we hide it with
@@ -42,7 +42,7 @@ const CLIENT_LOGOS = [
     "CASHPOINT",
 ];
 
-export default function VaniPage() {
+export default function VaaniPage() {
     return (
         <div className="relative w-full overflow-x-hidden bg-[#0a0a0a]">
 
@@ -163,7 +163,7 @@ export default function VaniPage() {
             </div>
 
             {/* Floating voice-bot launcher — the same widget external sites embed */}
-            <VaniWidget />
+            <VaaniWidget />
         </div>
     );
 }

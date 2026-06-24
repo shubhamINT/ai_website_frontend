@@ -48,7 +48,7 @@ interface CanvasProps {
     updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void;
     /** Send a starter question to the agent (wired to the idle StarterScreen). */
     sendText: (text: string) => void;
-    /** Latest agent spoken text — shown centered on the welcome screen as Vani speaks. */
+    /** Latest agent spoken text — shown centered on the welcome screen as Vaani speaks. */
     agentText?: string | null;
     isAgentInterim?: boolean;
 }

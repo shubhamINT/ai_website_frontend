@@ -7,7 +7,7 @@
  * <CTAButton /> with a different href/label/icon — no copy-pasted Tailwind.
  *
  *   variant="primary"   solid blue (the main action)
- *   variant="secondary" white with blue ring + soft glow (e.g. "Try Vani Today")
+ *   variant="secondary" white with blue ring + soft glow (e.g. "Try Vaani Today")
  */
 
 import Link from "next/link";

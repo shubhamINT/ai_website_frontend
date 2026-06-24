@@ -1,20 +1,20 @@
 "use client";
 
 /**
- * /embed — the Vani widget, rendered INSIDE the loader's iframe.
+ * /embed — the Vaani widget, rendered INSIDE the loader's iframe.
  *
  * This is the entire embeddable surface. It renders the shared <ChatWindowShell>
- * (launcher orb → bottom-right popup card), identical to /vani.
+ * (launcher orb → bottom-right popup card), identical to /Vaani.
  *
  * Because it lives in a cross-origin iframe, it can't resize itself — it asks the
  * host loader (public/widget.js) to resize the iframe via postMessage:
- *     { type: 'vani:resize', mode: 'collapsed' | 'open', width }
+ *     { type: 'Vaani:resize', mode: 'collapsed' | 'open', width }
  * The loader owns the iframe geometry; this page owns what's drawn inside it. The
- * loader also tells us the host form factor ({ type: 'vani:host', isMobile }), since
+ * loader also tells us the host form factor ({ type: 'Vaani:host', isMobile }), since
  * CSS `sm:` here keys off the narrow iframe, not the host viewport.
  *
  * LiveKit connects lazily on first open and disconnects on close, so an embedded
- * site pays nothing until the visitor actually opens Vani.
+ * site pays nothing until the visitor actually opens Vaani.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -33,14 +33,14 @@ function postResize(mode: "collapsed" | "open", width?: number) {
     if (typeof window === "undefined") return;
     // "*" is intentional — the parent (host) origin is unknown for a cross-site
     // embed. Safe here: the message carries only layout state, no credentials.
-    window.parent.postMessage({ type: "vani:resize", mode, width }, "*");
+    window.parent.postMessage({ type: "Vaani:resize", mode, width }, "*");
 }
 
 // Corner drag runs inside the iframe (ChatWindowShell); we just relay the new box
 // size to the loader, which applies it. phase "move" = live resize, "end" = settle.
 function postResizeFree(phase: "move" | "end", width?: number, height?: number) {
     if (typeof window === "undefined") return;
-    window.parent.postMessage({ type: "vani:resize-free", phase, width, height }, "*");
+    window.parent.postMessage({ type: "Vaani:resize-free", phase, width, height }, "*");
 }
 
 export default function EmbedPage() {
@@ -66,10 +66,10 @@ export default function EmbedPage() {
     // loader sends the first one even if it mounted before us.
     useEffect(() => {
         function onHostMessage(e: MessageEvent) {
-            if (e.data?.type === "vani:host") setIsMobileHost(!!e.data.isMobile);
+            if (e.data?.type === "Vaani:host") setIsMobileHost(!!e.data.isMobile);
         }
         window.addEventListener("message", onHostMessage);
-        window.parent.postMessage({ type: "vani:ready" }, "*");
+        window.parent.postMessage({ type: "Vaani:ready" }, "*");
         return () => window.removeEventListener("message", onHostMessage);
     }, []);
 

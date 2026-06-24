@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 // component and renders NOTHING on an unknown key. Keep this key list in sync
 // with the backend prompt's PRESET GRAPHIC KEYS section and `PresetGraphicKey`.
 //
-// House palette: blue (#3b82f6) → emerald (#10b981) on the Vani glass surface.
+// House palette: blue (#3b82f6) → emerald (#10b981) on the Vaani glass surface.
 // Each graphic is a small *illustration*, not a wireframe: layered fills,
 // soft glow, depth shadow, and a staggered entrance so a card with only a
 // hero still feels designed. ViewBox is 220×150 across the set so sizes match.

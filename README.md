@@ -33,11 +33,11 @@ app/
 │   ├── page.tsx        #    full-screen page chrome; mounts LiveKitRoom + <AgentInterface>
 │   └── _components/    #    immersive-only chrome (ThreeBackground)
 │
-├── vani/               # ② CHAT-WINDOW experience — "Try Vani Today"
+├── Vaani/               # ② CHAT-WINDOW experience — "Try Vaani Today"
 │   ├── page.tsx        #    INT hero page; drops the SAME widget.js external sites use
-│   └── _components/    #    VaniWidget.tsx (loads /widget.js, manual mount/destroy)
+│   └── _components/    #    VaaniWidget.tsx (loads /widget.js, manual mount/destroy)
 │
-├── embed/              # ③ EMBEDDABLE widget — Vani for ANY site (incl. our /vani)
+├── embed/              # ③ EMBEDDABLE widget — Vaani for ANY site (incl. our /Vaani)
 │   ├── page.tsx        #    launcher orb ↔ popup card; runs inside the loader's iframe
 │   ├── _components/    #    ChatWindowShell.tsx (the whole widget UI)
 │   └── layout.tsx      #    forces a transparent background for the iframe
@@ -67,37 +67,37 @@ public/
 - Anything used by both (logic, types, generic UI, agent rendering) → `_shared/`.
 - `_shared/hooks` is the single source of AI logic and `_shared/components` the single
   source of agent UI — every experience renders the same `<AgentInterface>` (full-window
-  in `/dynamic`; in a popup card in `/embed` via `variant="window"`). `/vani` doesn't
+  in `/dynamic`; in a popup card in `/embed` via `variant="window"`). `/Vaani` doesn't
   render the agent itself: it loads `widget.js` → iframes `/embed`, exactly like an
   external site. One widget, one loader, no duplication.
 - Import shared code from other folders with the `@/app/_shared/...` alias
   (configured in `tsconfig.json`). *Within* `_shared/` itself, sibling files use
   relative imports (e.g. `../types/agentTypes`).
 
-## 🔌 Embedding Vani on another website
+## 🔌 Embedding Vaani on another website
 
-Vani can be dropped onto **any** website — your own marketing pages or a
+Vaani can be dropped onto **any** website — your own marketing pages or a
 customer's site — with a single line, without touching their HTML, CSS, or JS.
 
 ### For the site owner (the only thing they add)
 
 ```html
-<script src="https://YOUR-VANI-HOST/widget.js" async></script>
+<script src="https://YOUR-Vaani-HOST/widget.js" async></script>
 ```
 
 That's it. A deep-navy glass launcher orb (with a living iridescent core) appears
 bottom-right; a greeting card slides in on hover. Clicking it opens a chat card
-with full voice + visual Vani. Optional override:
+with full voice + visual Vaani. Optional override:
 
 ```html
 <!-- serve /embed from a different host than the script itself -->
-<script src="https://cdn.example.com/widget.js" data-vani-src="https://vani.example.com" async></script>
+<script src="https://cdn.example.com/widget.js" data-Vaani-src="https://Vaani.example.com" async></script>
 ```
 
 ### How it stays isolated (and why it can't break their site)
 
 ```
- customer's page                     your Vani host
+ customer's page                     your Vaani host
  ┌───────────────────────┐          ┌──────────────────────────────┐
  │  <script widget.js> ──────────▶  │  /widget.js  (tiny loader)    │
  │                       │          └──────────────────────────────┘
@@ -108,13 +108,13 @@ with full voice + visual Vani. Optional override:
  └───────────────────────┘            └── VoiceDock  (control bar)   │
 ```
 
-- **Everything Vani draws lives in a cross-origin `<iframe>`.** The host page's
-  styles and scripts cannot reach in; Vani's cannot leak out. Zero collision.
+- **Everything Vaani draws lives in a cross-origin `<iframe>`.** The host page's
+  styles and scripts cannot reach in; Vaani's cannot leak out. Zero collision.
 - **`widget.js` adds exactly one DOM node** (the iframe) and no global CSS.
-- The iframe **resizes itself** by posting `{ type: 'vani:resize', mode, width }`
+- The iframe **resizes itself** by posting `{ type: 'Vaani:resize', mode, width }`
   to the loader: a small bottom-right box when collapsed, a bottom-right popup card
   (400px, or 720px expanded) on desktop, full-screen on mobile. The loader also
-  posts `{ type: 'vani:host', isMobile }` back so the iframe picks card-vs-fullscreen
+  posts `{ type: 'Vaani:host', isMobile }` back so the iframe picks card-vs-fullscreen
   off the real host viewport (its own CSS `sm:` breakpoint can't see past the iframe).
   On desktop the rest of the host page stays clickable — only the corner is covered.
 - **Mic** works because the iframe is granted `allow="microphone"`. The host page
@@ -123,7 +123,7 @@ with full voice + visual Vani. Optional override:
 ### One engine, two views
 
 The widget is not a separate AI — it renders the same shared engine as `/dynamic`.
-(`/vani` shows this very widget, loaded through `widget.js`.) `<AgentInterface>` owns
+(`/Vaani` shows this very widget, loaded through `widget.js`.) `<AgentInterface>` owns
 the LiveKit room and composes two views that **always travel together**:
 
 - **`Canvas`** — the visual board: flashcards, maps, forms, the idle starter screen.
@@ -132,11 +132,11 @@ the LiveKit room and composes two views that **always travel together**:
 Both read the same message stream; neither works alone. The split is for clarity
 and reuse, not for shipping one without the other.
 
-**Window-only open state (`variant="window"`).** The embed/`/vani` chat card tightens
+**Window-only open state (`variant="window"`).** The embed/`/Vaani` chat card tightens
 the layout into one continuous surface (no header seam) and adds three behaviors the
 immersive `/dynamic` view does not use:
 
-- **Live transcript** — the welcome greeting is swapped for Vani's speech, typed out
+- **Live transcript** — the welcome greeting is swapped for Vaani's speech, typed out
   with a streaming caret as she talks.
 - **Swipeable starter strip** — starter questions move to the bottom as a swipe strip
   (click to send) instead of a centered list.
@@ -175,7 +175,7 @@ pnpm dev
 ```
 
 `/widget.js` and `/embed` are public (whitelisted in `proxy.ts`) so they load
-without an `auth_session` cookie. To restrict which domains may embed Vani, add a
+without an `auth_session` cookie. To restrict which domains may embed Vaani, add a
 `Content-Security-Policy: frame-ancestors ...` header in front of `/embed`.
 
 ## 🚀 Quick Start
@@ -512,7 +512,7 @@ route handlers in `app/api/auth/*` proxy to it and set the httpOnly `auth_sessio
 | `NEXT_PUBLIC_BACKEND_URL` | Backend API URL (public, used client-side) | `https://api.indusnettechnologies.com` |
 | `NEXT_PUBLIC_PIXABAY_API_KEY` | Pixabay API key for images | `your_api_key_here` |
 | `BACKEND_URL` | Backend API URL (server-side only, for auth proxy; falls back to `NEXT_PUBLIC_BACKEND_URL`) | `https://api.indusnettechnologies.com` |
-| `APP_URL` | This frontend's public origin — builds the Google SSO redirect (defaults to `http://localhost:3000`) | `https://vani.indusnettechnologies.com` |
+| `APP_URL` | This frontend's public origin — builds the Google SSO redirect (defaults to `http://localhost:3000`) | `https://Vaani.indusnettechnologies.com` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | from Google Cloud Console |
 | `NODE_ENV` | Node environment | `production` |

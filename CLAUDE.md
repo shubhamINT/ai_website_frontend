@@ -23,13 +23,13 @@ A Next.js 16 (app router, React 19, Tailwind v4, TypeScript) frontend for an
 AI website. The product has **two AI experiences that share one engine**:
 
 - **`/dynamic`** — the *immersive* full-window experience ("Talk to our website").
-- **`/vani`** — the *chat-window* experience ("Try Vani Today"). An INT hero page
+- **`/Vaani`** — the *chat-window* experience ("Try Vaani Today"). An INT hero page
   that drops the **same `public/widget.js`** external sites embed (it iframes
-  `/embed`) — so `/vani` and customers' sites show the identical widget.
+  `/embed`) — so `/Vaani` and customers' sites show the identical widget.
 - **`/embed`** — the single widget surface the loader iframes; renders the chat-window
   UI (`ChatWindowShell` → `AgentInterface variant="window"`).
 
-`/dynamic` renders the agent directly; `/vani` and external sites reach it through
+`/dynamic` renders the agent directly; `/Vaani` and external sites reach it through
 the widget. The real-time agent logic lives in `app/_shared/` — do not duplicate it.
 
 ### Real-time agent (LiveKit)
@@ -98,8 +98,8 @@ Split between Next.js (UI + cookie) and a FastAPI backend (credential check + JW
 app/
 ├── dynamic/   route  — immersive page chrome; mounts LiveKitRoom + <AgentInterface>.
 │                       _components/ holds only dynamic-specific chrome (ThreeBackground).
-├── vani/      route  — INT hero page; drops the same widget external sites use via
-│                       vani/_components/VaniWidget (loads /widget.js → iframes /embed).
+├── Vaani/      route  — INT hero page; drops the same widget external sites use via
+│                       Vaani/_components/VaaniWidget (loads /widget.js → iframes /embed).
 ├── embed/     route  — the single widget surface the loader iframes. page.tsx owns the
 │                       LiveKit lifecycle + iframe postMessage; _components/ChatWindowShell
 │                       is the chat-window UI (mounts <AgentInterface variant="window">).
@@ -117,8 +117,8 @@ app/
         └── primitives/   SmartIcon, StarterScreen, BarVisualizer, useAudioFFT, DynamicImage
 ```
 
-`public/widget.js` is the loader — the one file external sites (and `/vani`) reference;
-it iframes `/embed`. See README "Embedding Vani".
+`public/widget.js` is the loader — the one file external sites (and `/Vaani`) reference;
+it iframes `/embed`. See README "Embedding Vaani".
 
 Conventions:
 - **Routes stay flat under `app/`** — Next.js maps folder → URL. Never move

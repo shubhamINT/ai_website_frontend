@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * ChatWindowShell — the Vani widget UI (the whole /embed surface).
+ * ChatWindowShell — the Vaani widget UI (the whole /embed surface).
  *
  * Renders the launcher orb + the bottom-right popup card (header, connecting/error
  * states, and the mounted <AgentInterface variant="window">). Lives under /embed
- * because /embed is the single widget surface — /vani reaches it by iframing /embed
+ * because /embed is the single widget surface — /Vaani reaches it by iframing /embed
  * via public/widget.js, so this is the one chat-window UI everywhere.
  *
  * This component is PURELY PRESENTATIONAL — it owns no connection logic and no
@@ -140,7 +140,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                 </svg>
                             </span>
                             <span className="flex flex-col leading-tight">
-                                <span className="text-[15px] font-bold text-slate-900">Hi, I&apos;m Vani</span>
+                                <span className="text-[15px] font-bold text-slate-900">Hi, I&apos;m Vaani</span>
                                 <span className="text-xs font-medium text-blue-600">Your INT AI assistant</span>
                             </span>
                         </span>
@@ -149,7 +149,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                         <button
                             onClick={onOpen}
                             className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[radial-gradient(circle_at_50%_38%,#1e2a52_0%,#111c3d_55%,#070d22_100%)] shadow-[0_10px_34px_rgba(7,13,34,0.55)] ring-1 ring-white/15 transition-all duration-300 hover:scale-105 hover:shadow-[0_16px_48px_rgba(7,13,34,0.65)] active:scale-95"
-                            aria-label="Talk to Vani"
+                            aria-label="Talk to Vaani"
                         >
                             {/* Living iridescent core — moves + rotates inside the orb */}
                             <span className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 animate-orb-swirl rounded-full bg-[conic-gradient(from_0deg,#60a5fa,#22d3ee,#818cf8,#c084fc,#f472b6,#60a5fa)] opacity-80 blur-[9px]" />
@@ -233,7 +233,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                     <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                                 </span>
                                 <div className="flex items-baseline gap-1.5">
-                                    <span className="text-sm font-semibold text-zinc-900">Vani</span>
+                                    <span className="text-sm font-semibold text-zinc-900">Vaani</span>
                                     <span className="text-[10px] font-medium tracking-wide text-zinc-400">
                                         Powered by <span className="font-semibold text-zinc-600">INT</span>
                                     </span>
@@ -277,7 +277,7 @@ export const ChatWindowShell: React.FC<ChatWindowShellProps> = ({
                                             </svg>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-zinc-500">Connecting to Vani…</p>
+                                    <p className="text-sm text-zinc-500">Connecting to Vaani…</p>
                                 </div>
                             ) : (
                                 <LiveKitRoom

@@ -1,16 +1,16 @@
 declare module "*.css";
 
-/** Handle returned by the Vani widget loader (public/widget.js). */
-interface VaniWidgetInstance {
+/** Handle returned by the Vaani widget loader (public/widget.js). */
+interface VaaniWidgetInstance {
     destroy(): void;
 }
 
 /** Public API exposed by public/widget.js for manual (SPA) mounting. */
-interface VaniWidgetApi {
-    mount(opts?: { origin?: string }): VaniWidgetInstance;
+interface VaaniWidgetApi {
+    mount(opts?: { origin?: string }): VaaniWidgetInstance;
 }
 
 interface Window {
-    VaniWidget?: VaniWidgetApi;
-    __vaniWidgetLoaded?: boolean;
+    VaaniWidget?: VaaniWidgetApi;
+    __VaaniWidgetLoaded?: boolean;
 }
