@@ -113,9 +113,9 @@ export default function LandingPage() {
                             }
                         />
 
-                        {/* Secondary: opens the new Vaani chat-window experience (/Vaani) */}
+                        {/* Secondary: opens the new Vaani chat-window experience (/vaani) */}
                         <CTAButton
-                            href="/Vaani"
+                            href="/vaani"
                             label="Try Vaani Today"
                             variant="secondary"
                             icon={
