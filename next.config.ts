@@ -33,10 +33,6 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Old/external links use capitalized /Vaani; route folder is lowercase /vaani.
-  async redirects() {
-    return [{ source: '/Vaani', destination: '/vaani', permanent: true }];
-  },
 };
 
 export default nextConfig;
