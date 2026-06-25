@@ -9,7 +9,6 @@ export function useVisualMessageFilters(messages: ChatMessage[]) {
         // location_request is intentionally excluded — it's handled silently via useEffect
         const visualMsgs = messages.filter(m =>
             m.type === 'flashcard' ||
-            m.type === 'infographic' ||
             m.type === 'contact_form' ||
             m.type === 'contact_form_submit' ||
             m.type === 'meeting_form' ||
@@ -17,7 +16,6 @@ export function useVisualMessageFilters(messages: ChatMessage[]) {
             m.type === 'map_polyline' ||
             m.type === 'global_presence' ||
             m.type === 'nearby_offices' ||
-            m.type === 'office_details' ||
             m.type === 'job_application_preview' ||
             m.type === 'job_application_submit'
         );
@@ -57,10 +55,6 @@ export function useVisualMessageFilters(messages: ChatMessage[]) {
         return latestVisualMessage?.type === 'nearby_offices' ? latestVisualMessage : null;
     }, [latestVisualMessage]);
 
-    const officeDetailsMessage = useMemo(() => {
-        return latestVisualMessage?.type === 'office_details' ? latestVisualMessage : null;
-    }, [latestVisualMessage]);
-
     const jobApplicationPreviewMessage = useMemo(() => {
         return latestVisualMessage?.type === 'job_application_preview' ? latestVisualMessage : null;
     }, [latestVisualMessage]);
@@ -79,7 +73,6 @@ export function useVisualMessageFilters(messages: ChatMessage[]) {
         mapPolylineMessage,
         globalPresenceMessage,
         nearbyOfficesMessage,
-        officeDetailsMessage,
         jobApplicationPreviewMessage,
         jobApplicationSubmitMessage,
     };

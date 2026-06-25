@@ -8,25 +8,17 @@ interface MeetingFormProps {
 }
 
 export const MeetingForm: React.FC<MeetingFormProps> = ({ data }) => {
-    // Safely parse the start time — agent may send blank/invalid values
-    const dt = data.start_time ? new Date(data.start_time) : null;
-    const validDate = dt !== null && !isNaN(dt.getTime());
-    const formattedDate = validDate
-        ? dt!.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-          })
-        : null;
-    const formattedTime = validDate
-        ? dt!.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-          })
-        : null;
-    const validDuration =
-        typeof data.duration_hours === 'number' && !isNaN(data.duration_hours);
+    // Format date string for better display
+    const formattedDate = new Date(data.start_time).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+    const formattedTime = new Date(data.start_time).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 
     return (
         <motion.div
@@ -72,11 +64,11 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({ data }) => {
                 </div>
 
                 {/* Right Side: Meeting Details */}
-                <div className="w-full md:w-[60%] p-8 md:p-12 space-y-8 flex flex-col justify-center md-stagger">
+                <div className="w-full md:w-[60%] p-8 md:p-12 space-y-8 flex flex-col justify-center">
                     <div className="space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/80">Calendar Invite</span>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
-                            {data.subject}
+                            {data.subject || 'Untitled Meeting'}
                         </h2>
                     </div>
 
@@ -89,17 +81,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({ data }) => {
                                 </svg>
                             </div>
                             <div className="space-y-1">
-                                {validDate ? (
-                                    <>
-                                        <p className="text-sm font-bold text-zinc-900">{formattedDate}</p>
-                                        <p className="text-sm text-zinc-500">
-                                            {formattedTime}
-                                            {validDuration && ` • ${data.duration_hours} hour${data.duration_hours !== 1 ? 's' : ''}`}
-                                        </p>
-                                    </>
-                                ) : (
-                                    <p className="text-sm font-bold text-zinc-900">Date to be confirmed</p>
-                                )}
+                                <p className="text-sm font-bold text-zinc-900">{formattedDate}</p>
+                                <p className="text-sm text-zinc-500">{formattedTime} • {data.duration_hours} hour{data.duration_hours !== 1 ? 's' : ''}</p>
                             </div>
                         </div>
 

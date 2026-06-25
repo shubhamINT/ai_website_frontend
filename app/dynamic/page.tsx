@@ -12,12 +12,6 @@ import { ThreeBackground } from "./_components/ThreeBackground";
 
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 
-// Stable references so a re-render never changes LiveKitRoom prop identity (which
-// would re-run its connect/publish effects and reconnect the room).
-const AUDIO_CAPTURE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true } as const;
-const ROOM_STYLE = { height: "100%" } as const;
-const logLkError = (err: Error) => console.error("LiveKit Room Error:", err);
-
 export default function DynamicPage() {
   const router = useRouter();
   const { token, error, connect, disconnect } = useLiveKitConnection();
@@ -130,11 +124,15 @@ export default function DynamicPage() {
                 serverUrl={LIVEKIT_URL}
                 connect={true}
                 video={false}
-                audio={AUDIO_CAPTURE}
+                audio={{
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                }}
                 data-lk-theme="default"
-                style={ROOM_STYLE}
+                style={{ height: '100%' }}
                 onDisconnected={handleDisconnect}
-                onError={logLkError}
+                onError={(err) => console.error("LiveKit Room Error:", err)}
               >
                 <AgentInterface onDisconnect={handleDisconnect} />
               </LiveKitRoom>

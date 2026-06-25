@@ -1,46 +1,50 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useLocalParticipant } from '@livekit/components-react';
 import { InteractionMode, ChatMessage } from '../types/agentTypes';
-import { useSpeechGate } from './useSpeechGate';
 
 export function useInteractionControl(
     updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void
 ) {
     const { localParticipant } = useLocalParticipant();
     const [mode, setInteractionMode] = useState<InteractionMode>('voice');
-    const [manuallyMuted, setManuallyMuted] = useState(false);
 
-    // In voice mode (and not hand-muted) the VAD gate owns the mic — opens it on
-    // detected speech, holds it on silence (always gated; see [[vad-always-gate]]).
-    // Otherwise the mic is forced off here.
-    const gateActive = mode === 'voice' && !manuallyMuted;
-    useSpeechGate(gateActive);
-
+    // Exclusive Mode Management
     useEffect(() => {
         if (!localParticipant) return;
-        if (!gateActive) {
+
+        if (mode === 'voice') {
+            localParticipant.setMicrophoneEnabled(true);
+        } else {
             localParticipant.setMicrophoneEnabled(false);
         }
-        // when gateActive, useSpeechGate is the sole owner of the mic enable state.
-    }, [localParticipant, gateActive]);
+    }, [localParticipant, mode]);
 
 
     const toggleMic = useCallback((mute: boolean) => {
-        // Mute = user wants silence (pauses the gate). Unmute → re-enter voice mode.
-        setManuallyMuted(mute);
-        if (!mute) {
-            setInteractionMode('voice');
+        if (localParticipant) {
+            // Mute = User wants silence. If they unmute, they enter Voice mode.
+            if (!mute) {
+                setInteractionMode('voice');
+            }
+            localParticipant.setMicrophoneEnabled(!mute);
         }
-    }, []);
+    }, [localParticipant]);
 
     const sendText = useCallback(async (text: string) => {
-        if (localParticipant) {
-            // Activating text mode
+        if (!localParticipant) return;
+
+        // System hints (prefixed [RESUME CONVERSATION]) go straight to the backend.
+        // They must NOT appear in the UI, must NOT switch to text mode (voice stays on),
+        // and must NOT be added to the message map (no transcript, no context-sync side-effects).
+        const isSystemHint = text.startsWith('[RESUME CONVERSATION]');
+
+        if (!isSystemHint) {
             setInteractionMode('text');
+        }
 
-            // Standard LiveKit Text Stream
-            await localParticipant.sendText(text, { topic: 'lk.chat' });
+        await localParticipant.sendText(text, { topic: 'lk.chat' });
 
+        if (!isSystemHint) {
             // Optimistically add to UI
             const id = `local-${Date.now()}`;
             updateMessages((prev) => {

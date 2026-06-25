@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-react';
+import { useLocalParticipant } from '@livekit/components-react';
 import { BarVisualizer } from '../primitives/BarVisualizer';
 
 interface VoiceDockProps {
@@ -12,12 +13,27 @@ interface VoiceDockProps {
     sendText: (text: string) => void;
     /** End the session (disconnect / collapse the window). */
     onDisconnect: () => void;
+    /** Window variant: pause (keep widget open) instead of fully closing. */
+    onPause?: () => void;
     activeTrack: TrackReferenceOrPlaceholder | undefined;
     userTrack: TrackReferenceOrPlaceholder | undefined;
     /** 'window' tightens spacing for the chat-window / embed drawer. */
     variant: 'immersive' | 'window';
-    /** Window variant only: card is freely drag-resized — dock grows fluidly with the card. */
-    fluid?: boolean;
+    /** Window variant only: card is in its wide (expanded) state — widen the dock to match. */
+    isExpanded?: boolean;
+    /**
+     * Show the BarVisualizer in the dock. False when BlobVisualizer in StarterScreen
+     * is already showing it — so only one visualizer is visible at a time.
+     * Defaults to true (always visible in the immersive /dynamic view).
+     */
+    showVisualizer?: boolean;
+    /**
+     * When true, VoiceDock performs the same soft-pause as the ⏸ button
+     * (mutes mic + agent, starts keepalive). Used for backend-triggered force-pause.
+     */
+    externallyPaused?: boolean;
+    /** Called once VoiceDock has applied the external pause so the flag can reset. */
+    onExternalPauseHandled?: () => void;
 }
 
 /**
@@ -34,15 +50,24 @@ export const VoiceDock: React.FC<VoiceDockProps> = ({
     toggleMic,
     sendText,
     onDisconnect,
+    onPause,
     activeTrack,
     userTrack,
     variant,
-    fluid = false,
+    isExpanded = false,
+    showVisualizer = true,
+    externallyPaused = false,
+    onExternalPauseHandled,
 }) => {
     const isWindow = variant === 'window';
     const [inputText, setInputText] = useState('');
     const [isMuted, setIsMuted] = useState(false);
     const [isAgentMuted, setIsAgentMuted] = useState(false);
+    // Soft conversation pause — mutes both mic and agent, keeps session alive.
+    // Window only: immersive keeps the original end-session behaviour.
+    const [isConvoPaused, setIsConvoPaused] = useState(false);
+    const { localParticipant } = useLocalParticipant();
+    const keepaliveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Mute the agent's audio by zeroing its track volume.
     useEffect(() => {
@@ -51,6 +76,73 @@ export const VoiceDock: React.FC<VoiceDockProps> = ({
             (track as { setVolume: (v: number) => void }).setVolume(isAgentMuted ? 0 : 1);
         }
     }, [isAgentMuted, activeTrack]);
+
+    const publishPausePacket = (type: 'user.paused' | 'user.resumed') => {
+        if (!localParticipant) return;
+        try {
+            const encoded = new TextEncoder().encode(JSON.stringify({ type }));
+            localParticipant.publishData(encoded, { topic: type });
+        } catch { /* ignore */ }
+    };
+
+    const handleConvoPauseToggle = () => {
+        if (!isConvoPaused) {
+            // ── Pause ──────────────────────────────────────────────────────
+            setIsConvoPaused(true);
+            setIsMuted(true);
+            toggleMic(true);
+            setIsAgentMuted(true);
+            // Switch to text mode so resume's setInteractionMode('voice') is always
+            // a real state change — ensures the useEffect re-fires and re-enables the mic.
+            setInteractionMode('text');
+
+            // Tell the backend immediately so the silence watchdog resets.
+            // Then keep sending every 8 s (watchdog reprompt interval = 10 s)
+            // so the session never shuts down while we're paused.
+            publishPausePacket('user.paused');
+            keepaliveIntervalRef.current = setInterval(
+                () => publishPausePacket('user.paused'),
+                8000,
+            );
+        } else {
+            // ── Resume ─────────────────────────────────────────────────────
+            setIsConvoPaused(false);
+            setIsMuted(false);
+            toggleMic(false);
+            setIsAgentMuted(false);
+            setInteractionMode('voice');
+
+            // Stop keepalive and tell the backend the user is back.
+            if (keepaliveIntervalRef.current) {
+                clearInterval(keepaliveIntervalRef.current);
+                keepaliveIntervalRef.current = null;
+            }
+            publishPausePacket('user.resumed');
+        }
+    };
+
+    // Clean up interval if the component unmounts while paused.
+    useEffect(() => () => {
+        if (keepaliveIntervalRef.current) clearInterval(keepaliveIntervalRef.current);
+    }, []);
+
+    // Backend force-pause: run the same logic as the ⏸ button click so mic +
+    // agent are muted and the keepalive interval starts, then ack the parent.
+    useEffect(() => {
+        if (!externallyPaused || isConvoPaused) return;
+        setIsConvoPaused(true);
+        setIsMuted(true);
+        toggleMic(true);
+        setIsAgentMuted(true);
+        publishPausePacket('user.paused');
+        keepaliveIntervalRef.current = setInterval(
+            () => publishPausePacket('user.paused'),
+            8000,
+        );
+        onExternalPauseHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [externallyPaused]);
+
 
     const handleSend = () => {
         if (!inputText.trim()) return;
@@ -73,11 +165,13 @@ export const VoiceDock: React.FC<VoiceDockProps> = ({
     return (
         <div className={`relative z-30 flex flex-col justify-end flex-1 pointer-events-none ${isWindow ? 'mb-5' : 'mb-8'}`}>
             <div className={`pointer-events-auto flex w-full justify-center ${isWindow ? 'p-2' : 'p-4'}`}>
-                <div className={`flex w-full items-center gap-1.5 rounded-[32px] ${isWindow ? 'bg-sky-100/70' : 'bg-white/80'} p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] backdrop-blur-2xl transition-all hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)] ${isWindow ? `mx-auto gap-2 sm:gap-2 p-1.5 sm:p-1.5 sm:pl-2.5 transition-[max-width] duration-300 ${fluid ? 'max-w-[min(620px,92%)]' : 'max-w-[440px]'}` : 'sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3'}`}>
+                <div className={`flex w-full items-center gap-1.5 rounded-4xl ${isWindow ? 'bg-sky-100/70' : 'bg-white/80'} p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.08)] ring-1 ring-black/4 backdrop-blur-2xl transition-all hover:scale-[1.01] hover:shadow-[0_25px_50px_rgba(0,0,0,0.12)] ${isWindow ? `mx-auto gap-2 sm:gap-2 p-1.5 sm:p-1.5 sm:pl-2.5 transition-[max-width] duration-300 ${isExpanded ? 'max-w-[620px]' : 'max-w-[440px]'}` : 'sm:w-auto sm:max-w-none sm:gap-3 sm:p-2 sm:pl-3'}`}>
 
-                    <div className={`relative shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 flex items-center justify-center ${isWindow ? 'h-9 w-12 sm:h-10 sm:w-14' : 'h-10 w-16 sm:h-12 sm:w-20'}`}>
-                        <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} mode="mini" />
-                    </div>
+                    {showVisualizer && (
+                        <div className={`relative shrink-0 overflow-hidden rounded-xl bg-zinc-100/50 ring-1 ring-zinc-200 flex items-center justify-center ${isWindow ? 'h-9 w-12 sm:h-10 sm:w-14' : 'h-10 w-16 sm:h-12 sm:w-20'}`}>
+                            <BarVisualizer agentTrack={activeTrack} userTrack={userTrack} mode="mini" />
+                        </div>
+                    )}
 
                     <button
                         onClick={() => setIsAgentMuted(!isAgentMuted)}
@@ -137,30 +231,54 @@ export const VoiceDock: React.FC<VoiceDockProps> = ({
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder={"Type something..."}
-                            className={`w-full min-w-0 bg-transparent px-1 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all sm:w-[180px] sm:px-2 sm:py-2 md:w-[240px] ${mode === 'voice' ? 'cursor-text' : ''
+                            className={`w-full min-w-0 bg-transparent px-1 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-all sm:w-[180px] sm:px-2 sm:py-2 md:w-60 ${mode === 'voice' ? 'cursor-text' : ''
                                 }`}
                         />
-                        <button
-                            onClick={handleSend}
-                            disabled={!inputText.trim()}
-                            className="mr-0.5 shrink-0 rounded-full p-1.5 text-blue-600 transition-colors hover:bg-blue-50 disabled:text-zinc-300 disabled:hover:bg-transparent sm:mr-1 sm:p-2"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
-                                <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                            </svg>
-                        </button>
                     </div>
+
+                    {/* Send button — lives OUTSIDE the input div so it stays
+                        adjacent to the ⏸ button regardless of expanded width */}
+                    <button
+                        onClick={handleSend}
+                        disabled={!inputText.trim()}
+                        className="shrink-0 rounded-full p-1.5 text-blue-600 transition-colors hover:bg-blue-50 disabled:text-zinc-300 disabled:hover:bg-transparent sm:p-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
+                            <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                        </svg>
+                    </button>
 
                     <div className="h-5 w-px shrink-0 bg-zinc-200 mx-0.5 sm:h-6 sm:mx-1"></div>
 
+                    {/* Window: soft pause toggle (mic+agent muted, session alive).
+                        Immersive: end session. */}
                     <button
-                        onClick={onDisconnect}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-red-50 hover:text-red-500 sm:h-11 sm:w-11"
-                        title="End Session"
+                        onClick={isWindow ? handleConvoPauseToggle : onDisconnect}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors sm:h-11 sm:w-11 ${
+                            isWindow && isConvoPaused
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-zinc-100 text-zinc-900 hover:bg-amber-50 hover:text-amber-600'
+                        }`}
+                        title={isWindow ? (isConvoPaused ? "Resume conversation" : "Pause conversation") : "End session"}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
-                            <rect x="6" y="6" width="12" height="12" rx="2" />
-                        </svg>
+                        {isWindow ? (
+                            isConvoPaused ? (
+                                /* Play ▶ — click to resume */
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
+                                    <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
+                                </svg>
+                            ) : (
+                                /* Pause ⏸ — click to pause */
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
+                                    <path fillRule="evenodd" d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z" clipRule="evenodd" />
+                                </svg>
+                            )
+                        ) : (
+                            /* Stop ■ — immersive end session */
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5">
+                                <rect x="6" y="6" width="12" height="12" rx="2" />
+                            </svg>
+                        )}
                     </button>
 
                 </div>

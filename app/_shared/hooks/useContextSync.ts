@@ -13,6 +13,12 @@ export function useContextSync(
     const syncPerformed = useRef(false);
     const syncRef = useRef<() => void>(() => { });
 
+    // The current host website page (e.g. "/products"). The widget lives in a
+    // cross-origin iframe and can't read the host URL, so the loader (widget.js)
+    // tells us via 'vani:host' messages. We forward it to the agent so it knows
+    // where the user is — whether VAANI navigated there or the user clicked.
+    const hostPathRef = useRef<string | null>(null);
+
     // UI Context Sync to Backend (Snapshot Protocol)
     const syncUIContext = useCallback(() => {
         if (!localParticipant || !room || room.state !== 'connected') return;
@@ -25,18 +31,13 @@ export function useContextSync(
 
         // Extract recent flashcards to provide visual context to the agent
         const visibleCards = currentMessages
-            .filter(m => m.type === 'flashcard' || m.type === 'infographic')
-            .map(m => {
-                // Infographics carry their summary in hero/title, flashcards in cardData.value
-                const title = m.cardData?.title ?? m.infographicData?.title;
-                const body = m.cardData?.value ?? m.infographicData?.hero?.description ?? m.infographicData?.title ?? '';
-                return {
-                    id: m.id,
-                    type: m.type,
-                    title,
-                    summary: body.substring(0, 100) + (body.length > 100 ? '...' : '')
-                };
-            });
+            .filter(m => m.type === 'flashcard')
+            .map(m => ({
+                id: m.id,
+                type: m.type,
+                title: m.cardData?.title,
+                summary: m.cardData?.value?.substring(0, 100) + (m.cardData?.value && m.cardData.value.length > 100 ? '...' : '')
+            }));
 
         // [NEW] Get User Info from Local Storage
         let userInfo = { user_name: "", user_phone: "", user_id: "" };
@@ -63,7 +64,8 @@ export function useContextSync(
                     supportsDynamicMedia: true
                 }
             },
-            active_elements: visibleCards
+            active_elements: visibleCards,
+            current_page: hostPathRef.current
         };
 
         const encoder = new TextEncoder();
@@ -91,6 +93,22 @@ export function useContextSync(
     useEffect(() => {
         syncRef.current = syncUIContext;
     }, [syncUIContext]);
+
+    // Track the host page (sent by widget.js as { type: 'vani:host', path }).
+    // When it changes, push a fresh context sync so the agent learns the new
+    // page — this is what catches a user clicking a nav link.
+    useEffect(() => {
+        function onHostMessage(e: MessageEvent) {
+            if (e.data?.type !== 'vani:host') return;
+            const path = typeof e.data.path === 'string' ? e.data.path : null;
+            if (path && path !== hostPathRef.current) {
+                hostPathRef.current = path;
+                syncRef.current();
+            }
+        }
+        window.addEventListener('message', onHostMessage);
+        return () => window.removeEventListener('message', onHostMessage);
+    }, []);
 
     // Wire up the onStreamComplete callback
     useEffect(() => {

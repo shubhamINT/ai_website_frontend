@@ -50,7 +50,7 @@ app/
 │                       #      agent/AgentInterface  engine shell (variant: 'immersive' | 'window')
 │                       #      agent/Canvas          the visual board (cards, maps, forms)
 │                       #      agent/VoiceDock       the control bar (visualizer, mic, text)
-│                       #      forms/ maps/ flashcard/ infographic/ media/ primitives/
+│                       #      forms/ maps/ flashcard/ media/ primitives/
 │
 ├── landing/page.tsx    # post-login page with the two CTA buttons
 ├── login/page.tsx
@@ -140,29 +140,15 @@ immersive `/dynamic` view does not use:
   with a streaming caret as she talks.
 - **Swipeable starter strip** — starter questions move to the bottom as a swipe strip
   (click to send) instead of a centered list.
-- **Card carousel** — agent cards render ONE at a time in a sliding filmstrip
-  (`CardCarousel`): the active card is centered, the rest are clipped off-screen (no
-  peeking). It plays one slow auto-advance (first → last) then rests; drag / arrows /
-  dots navigate manually. (The immersive `/dynamic` view keeps the vertical grid.)
-- **Classic flashcard** — image flashcards render flat (`chromeless`) directly on the
-  blue-glass window (no white panel wrapper), so the carousel surface stays the single
-  depth layer.
+- **Card stack** — agent flashcards render as a 3D stacked deck (`CardStack`): the
+  front card sits full-size, the rest peek from the top-right corner. It plays one
+  slow auto-cycle (first → last → back to first) then stops; drag / arrows / dots
+  navigate manually. (The immersive `/dynamic` view keeps the vertical grid.)
 
-`CardCarousel` and `SwipeDeck` both live in `_shared/components/primitives/` (the
-starter strip uses `SwipeDeck`; cards use `CardCarousel`). All of this is gated on
-`variant === 'window'`, so `/dynamic` is unchanged.
-
-**Two card types (routed by `payload.type`).** `flashcard` is image-led (classic flat
-card). `infographic` (topic `ui.infographic` via `publish_infographic`, or inside the
-`ui.flashcard` deck) is the composed, text-led card that **replaces** the old `rich_card`,
-used broadly for text answers (pricing, process, explainers, greetings). It renders
-through `InfographicRenderer` (`_shared/components/infographic/`) as its OWN elevated
-card: top blue→emerald accent rail, header (icon + title), optional `hero`
-(description + `PresetGraphic`), ordered `sections[]` (`markdown` | `bullet_list` |
-`icon_bullets` | `stats` | `cta_banner`), and `chips` footer pills. `PresetGraphic` maps
-a key (`devops_loop`, `cicd_pipeline`, `cloud_stack`, `ai_workflow`, `security_shield`)
-to a bundled animated SVG and renders nothing on an unknown key. Markdown is shared with
-the flashcard via `flashcard/markdownComponents.tsx`.
+`CardStack` and `SwipeDeck` both live in `_shared/components/primitives/` (the
+starter strip uses `SwipeDeck`; flashcards use `CardStack`). The window card surface
+also carries a soft blue tint. All of this is gated on `variant === 'window'`, so
+`/dynamic` is unchanged.
 
 ### Test it locally
 

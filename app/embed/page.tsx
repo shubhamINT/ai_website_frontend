@@ -17,15 +17,16 @@
  * site pays nothing until the visitor actually opens Vani.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLiveKitConnection } from "@/app/_shared/hooks/useLiveKitConnection";
 import { ChatWindowShell } from "./_components/ChatWindowShell";
 
 const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
 
-// Card width the loader sizes the iframe around (px). Must match the shell's
-// w-[544px] class. Mobile ignores this and goes full-screen.
-const WIDTH_DEFAULT = 544;
+// Card widths the loader sizes the iframe around (px). Must match the shell's
+// w-[480px] / w-[860px] classes. Mobile ignores these and goes full-screen.
+const WIDTH_DEFAULT = 400;   // 480 × 0.96
+const WIDTH_EXPANDED = 800;  // 860 × 0.96
 
 // Tell the host loader how big the iframe should be. Safe no-op when opened
 // directly (not embedded) — the message just goes to our own window.
@@ -36,27 +37,25 @@ function postResize(mode: "collapsed" | "open", width?: number) {
     window.parent.postMessage({ type: "vani:resize", mode, width }, "*");
 }
 
-// Corner drag runs inside the iframe (ChatWindowShell); we just relay the new box
-// size to the loader, which applies it. phase "move" = live resize, "end" = settle.
-function postResizeFree(phase: "move" | "end", width?: number, height?: number) {
-    if (typeof window === "undefined") return;
-    window.parent.postMessage({ type: "vani:resize-free", phase, width, height }, "*");
-}
-
 export default function EmbedPage() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
     // Host form factor, told to us by the loader (public/widget.js) — the CSS `sm:`
     // breakpoint can't be trusted here, it keys off the iframe width. Default desktop;
     // corrected as soon as the host pings.
     const [isMobileHost, setIsMobileHost] = useState(false);
-    // True once the user drags the corner → card goes fluid (fills the iframe).
-    // Resets on close, so each open starts at the default preset (no persistence).
-    const [freeSize, setFreeSize] = useState(false);
+    // isPaused — widget shows the "I'm still here / Resume" screen.
+    const [isPaused, setIsPaused] = useState(false);
     const { token, error, connect, disconnect } = useLiveKitConnection();
+
+    // Mirror isOpen for the disconnect callback (which captures a stale closure).
+    const isOpenRef = useRef(false);
+    useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
 
     // Connect on open, disconnect on close — room lifecycle follows the card.
     useEffect(() => {
         if (isOpen) {
+            setIsPaused(false);
             connect();
             return () => disconnect();
         }
@@ -73,17 +72,39 @@ export default function EmbedPage() {
         return () => window.removeEventListener("message", onHostMessage);
     }, []);
 
-    // Grow the iframe as soon as we open (so the card has room to pop into).
-    // Collapsing back is deferred to onExitComplete so the pop-out animation
-    // isn't clipped by an early shrink.
+    // Grow the iframe as soon as we open (so the card has room to pop into), and on
+    // expand/shrink. Collapsing back is deferred to onExitComplete so the pop-out
+    // animation isn't clipped by an early shrink.
     useEffect(() => {
-        if (isOpen) postResize("open", WIDTH_DEFAULT);
-    }, [isOpen]);
+        if (isOpen) postResize("open", isExpanded ? WIDTH_EXPANDED : WIDTH_DEFAULT);
+    }, [isOpen, isExpanded]);
 
     const handleClose = useCallback(() => {
+        isOpenRef.current = false; // sync, so the unmount's onDisconnected won't pause
         setIsOpen(false);
-        setFreeSize(false); // next open starts at the default preset
+        setIsExpanded(false);
+        setIsPaused(false);
     }, []);
+
+    // The LiveKit room disconnected while the widget is still open (idle timeout).
+    const handleRoomDisconnected = useCallback(() => {
+        if (!isOpenRef.current) return;
+        setIsPaused(true);
+    }, []);
+
+    // Backend watchdog force-paused without disconnecting — show the pause screen.
+    const handleForcePause = useCallback(() => {
+        setIsPaused(true);
+    }, []);
+
+    // Resume from pause — always start a fresh session so VoiceDock state
+    // resets cleanly (mic unmuted, isConvoPaused=false). Works for both the
+    // force-pause case (session was still alive) and the idle-timeout case.
+    const handleResume = useCallback(() => {
+        setIsPaused(false);
+        disconnect();
+        connect();
+    }, [connect, disconnect]);
 
     return (
         <ChatWindowShell
@@ -95,11 +116,14 @@ export default function EmbedPage() {
             connect={connect}
             livekitUrl={LIVEKIT_URL}
             isMobile={isMobileHost}
+            isExpanded={isExpanded}
+            isPaused={isPaused}
+
+            onResume={handleResume}
+            onForcePause={handleForcePause}
+            onRoomDisconnected={handleRoomDisconnected}
+            onToggleExpand={() => setIsExpanded((v) => !v)}
             onExitComplete={() => postResize("collapsed")}
-            freeSize={freeSize}
-            onResizeStart={() => setFreeSize(true)}
-            onResize={(w, h) => postResizeFree("move", w, h)}
-            onResizeEnd={() => postResizeFree("end")}
             launcherClassName="bottom-4 right-4"
         />
     );

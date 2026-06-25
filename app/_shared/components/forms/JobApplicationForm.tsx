@@ -100,7 +100,7 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ data, up
                 </div>
 
                 {/* Form Side */}
-                <div className="w-full md:w-[65%] p-8 md:p-12 flex flex-col justify-center md-stagger">
+                <div className="w-full md:w-[65%] p-8 md:p-12 flex flex-col justify-center">
                     <div className="mb-8">
                         <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/80">Job Application</span>
                         <h2 className="text-3xl font-bold tracking-tight text-zinc-900 mt-1">
@@ -110,16 +110,12 @@ export const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ data, up
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Applying For */}
+                            {/* Static Info Display */}
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-zinc-500 ml-1 uppercase tracking-wide">Applying For</label>
-                                <input
-                                    type="text"
-                                    value={formData.job_details}
-                                    onChange={(e) => setFormData({ ...formData, job_details: e.target.value })}
-                                    placeholder="Job Title"
-                                    className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-3.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-                                />
+                                <label className="text-xs font-bold text-zinc-400 ml-1 uppercase tracking-wide">Applying For</label>
+                                <div className="w-full bg-zinc-50/80 border border-zinc-200/50 rounded-2xl px-5 py-3.5 text-sm text-zinc-700 font-semibold shadow-sm italic">
+                                    {formData.job_details || 'General Position'}
+                                </div>
                             </div>
 
                             <div className="space-y-1.5">

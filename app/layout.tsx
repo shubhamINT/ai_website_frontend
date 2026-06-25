@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { PersistentVaniWidget } from "./_shared/components/widget/PersistentVaniWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -10,13 +11,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-// Premium display face for card titles / big stat numbers.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -35,10 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
         {children}
+        {/* Floating Vani widget — mounted once here so it survives client-side
+            navigation between widget routes (e.g. /vani → /products) without
+            losing the chat session. Gated by route inside the component. */}
+        <PersistentVaniWidget />
       </body>
     </html>
   );

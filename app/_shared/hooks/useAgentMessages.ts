@@ -10,6 +10,10 @@ export function useAgentMessages() {
     const [messagesMap, setMessagesMap] = useState<Map<string, ChatMessage>>(new Map());
     const messagesRef = useRef<Map<string, ChatMessage>>(new Map());
 
+    // Fires once when the backend watchdog publishes agent.force_pause —
+    // consumers watch this ref and trigger soft-pause (no session disconnect).
+    const forcePauseRef = useRef<(() => void) | null>(null);
+
     // Callback to trigger context sync when stream ends - will be set by useContextSync
     const onStreamCompleteRef = useRef<(() => void) | null>(null);
 
@@ -67,17 +71,12 @@ export function useAgentMessages() {
                 const data = JSON.parse(strData);
                 console.log('--- INCOMING DATA CHANNEL MESSAGE ---', { topic, data });
 
-                // Visual cards — routed by payload `type` (topic is only a fallback).
-                // Both topics can carry a `flashcard` or an `infographic`; `rich_card`
-                // is the legacy alias for `infographic`.
-                if (topic === 'ui.flashcard' || topic === 'ui.infographic'
-                    || data.type === 'flashcard' || data.type === 'infographic'
-                    || data.type === 'rich_card' || data.type === 'end_of_stream') {
+                // Check either topic or data type for flashcards
+                if (topic === 'ui.flashcard' || data.type === 'flashcard') {
                     const id = `card-${Date.now()}-${Math.random()}`;
                     const streamId = data.stream_id || null;
 
-                    console.log('--- PROCESSING CARD ---', {
-                        cardType: data.type,
+                    console.log('--- PROCESSING FLASHCARD ---', {
                         streamId,
                         card_index: data.card_index,
                         title: data.title
@@ -92,80 +91,59 @@ export function useAgentMessages() {
                         return;
                     }
 
-                    // Infographic (or legacy rich_card) vs. image flashcard
-                    const isInfographic = data.type === 'infographic' || data.type === 'rich_card'
-                        || (topic === 'ui.infographic' && data.type !== 'flashcard');
-
                     updateMessages((prev) => {
                         const next = new Map(prev);
 
-                        // Flashcards and infographics share one deck — group/clear both.
-                        const isCardMsg = (m: ChatMessage) => m.type === 'flashcard' || m.type === 'infographic';
-                        const cardStreamId = (m: ChatMessage) => m.cardData?.stream_id ?? m.infographicData?.stream_id ?? null;
-
-                        const existingCards = Array.from(next.values()).filter(isCardMsg);
+                        // Find the current active stream_id from existing flashcards
+                        const existingCards = Array.from(next.values()).filter(m => m.type === 'flashcard');
                         const currentStreamId = existingCards.length > 0
-                            ? cardStreamId(existingCards[existingCards.length - 1])
+                            ? existingCards[existingCards.length - 1].cardData?.stream_id
                             : null;
+
+                        console.log('--- STREAM COMPARISON ---', {
+                            newStreamId: streamId,
+                            currentStreamId: currentStreamId,
+                            existingCardsCount: existingCards.length,
+                            willClear: streamId && streamId !== currentStreamId
+                        });
 
                         // If stream ID is different, clear previous cards
                         if (streamId && currentStreamId && streamId !== currentStreamId) {
                             console.log('--- CLEARING OLD STREAM ---', { oldStream: currentStreamId, newStream: streamId });
                             for (const [key, msg] of next.entries()) {
-                                if (isCardMsg(msg)) {
+                                if (msg.type === 'flashcard') {
                                     next.delete(key);
                                 }
                             }
                         }
 
-                        if (isInfographic) {
-                            next.set(id, {
-                                id,
-                                type: 'infographic',
-                                infographicData: {
-                                    title: data.title,
-                                    visual_intent: data.visual_intent,
-                                    icon: data.icon,
-                                    hero: data.hero,
-                                    sections: data.sections,
-                                    chips: data.chips?.length ? data.chips : undefined,
-                                    stream_id: streamId,
-                                    card_index: data.card_index,
-                                    recalled: data.recalled,
-                                },
-                                sender: 'agent',
-                                timestamp: Date.now(),
-                                isInterim: false
-                            });
-                        } else {
-                            next.set(id, {
-                                id,
-                                type: 'flashcard',
-                                cardData: {
-                                    title: data.title || "Information",
-                                    value: data.value || JSON.stringify(data),
-                                    stream_id: streamId,
-                                    card_index: data.card_index,
-                                    visual_intent: data.visual_intent,
-                                    icon: data.icon,
-                                    media: data.media ? {
-                                        urls: data.media.urls,
-                                        query: data.media.query,
-                                        source: data.media.source,
-                                    } : undefined,
-                                    // Rich body passthrough — missing → markdown fallback
-                                    content_kind: data.content_kind,
-                                    content: data.content,
-                                    bullets: data.bullets?.length ? data.bullets : undefined,
-                                    chips: data.chips?.length ? data.chips : undefined,
-                                    // Rich blocks — same schema as infographic; missing → flat card
-                                    sections: data.sections?.length ? data.sections : undefined,
-                                },
-                                sender: 'agent',
-                                timestamp: Date.now(),
-                                isInterim: false
-                            });
-                        }
+                        next.set(id, {
+                            id,
+                            type: 'flashcard',
+                            cardData: {
+                                title: data.title || "Information",
+                                value: data.value || '',
+                                items: Array.isArray(data.items) ? data.items : undefined,
+                                tagline: data.tagline && typeof data.tagline === 'object' ? data.tagline : undefined,
+                                stream_id: streamId,
+                                card_index: data.card_index,
+                                visual_intent: data.visual_intent,
+                                icon: data.icon,
+                                media: data.media ? {
+                                    urls: data.media.urls,
+                                    query: data.media.query,
+                                    source: data.media.source,
+                                    poster_label: data.media.poster_label,
+                                } : undefined,
+                            },
+                            sender: 'agent',
+                            timestamp: Date.now(),
+                            isInterim: false
+                        });
+
+                        console.log('--- CARDS AFTER ADD ---', {
+                            totalCards: Array.from(next.values()).filter(m => m.type === 'flashcard').length
+                        });
 
                         return next;
                     });
@@ -424,25 +402,6 @@ export function useAgentMessages() {
                         return next;
                     });
                 }
-                else if (topic === 'ui.office_details' || data.type === 'office_details') {
-                    const id = `office-details-${Date.now()}`;
-                    console.log('--- OFFICE DETAILS (INCOMING) ---', data);
-
-                    updateMessages((prev) => {
-                        const next = new Map(prev);
-                        next.set(id, {
-                            id,
-                            type: 'office_details',
-                            sender: 'agent',
-                            timestamp: Date.now(),
-                            isInterim: false,
-                            officeDetailsData: {
-                                office: data.data?.office || data.office,
-                            }
-                        });
-                        return next;
-                    });
-                }
                 else if (topic === 'ui.job_application' || data.type === 'job_application_preview' || data.type === 'job_application_submit') {
                     const isSubmit = data.type === 'job_application_submit';
                     const msgType = isSubmit ? 'job_application_submit' : 'job_application_preview';
@@ -493,6 +452,24 @@ export function useAgentMessages() {
                         }, 2500);
                     }
                 }
+                else if (topic === 'agent.force_pause' || data.type === 'agent.force_pause') {
+                    // Backend watchdog hit max reprompts — trigger soft pause on frontend.
+                    if (forcePauseRef.current) forcePauseRef.current();
+                }
+                else if (topic === 'ui.navigate' || data.type === 'navigate') {
+                    // Agent asked to navigate the host website to another page. We only
+                    // act from the embedded widget (an iframe): post the request up to the
+                    // host page, which decides how to go there (client-side push for our
+                    // own SPA pages, full navigation for real site pages). In the
+                    // immersive page (not iframed) window.parent === window, so we skip —
+                    // navigation is a widget-experience feature.
+                    const url = typeof data.url === 'string' ? data.url : '';
+                    const path = typeof data.path === 'string' ? data.path : '';
+                    console.log('--- NAVIGATE REQUEST ---', { url, path });
+                    if ((url || path) && typeof window !== 'undefined' && window.parent !== window) {
+                        window.parent.postMessage({ type: 'vani:navigate', url, path }, '*');
+                    }
+                }
             } catch (e) { /* ignore non-json or noise */ }
         };
 
@@ -509,6 +486,7 @@ export function useAgentMessages() {
         messages: sortedMessages,
         messagesRef,
         updateMessages,
-        onStreamCompleteRef
+        onStreamCompleteRef,
+        forcePauseRef
     };
 }

@@ -1,11 +1,7 @@
-'use client';
-
 import React from 'react';
 import dynamic from 'next/dynamic';
 import type { ChatMessage } from '../../types/agentTypes';
 import type { VisualMessageFilters } from './useVisualMessageFilters';
-import { useScrollAffordance } from '../../hooks/useScrollAffordance';
-import { ScrollHint } from '../primitives/ScrollHint';
 import { ContactForm } from '../forms/ContactForm';
 import { ContactFormSubmit } from '../forms/ContactFormSubmit';
 import { JobApplicationForm } from '../forms/JobApplicationForm';
@@ -30,11 +26,6 @@ const NearbyOffices = dynamic<any>(() => import('../maps/NearbyOffices').then(mo
     loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
 });
 
-const OfficeDetails = dynamic<any>(() => import('../maps/OfficeDetails').then(mod => mod.OfficeDetails), {
-    ssr: false,
-    loading: () => <div className="h-[350px] w-full animate-pulse rounded-[32px] bg-zinc-100/50 backdrop-blur-md md:h-[450px]" />
-});
-
 interface CanvasProps {
     /** Output of useVisualMessageFilters(messages) — the single visual the agent wants shown. */
     visuals: VisualMessageFilters;
@@ -44,6 +35,8 @@ interface CanvasProps {
     agentState: string;
     /** 'window' tightens padding for the chat-window / embed drawer. */
     variant: 'immersive' | 'window';
+    /** Window deck only: card is wide → CardStack moves nav arrows to the sides. */
+    isExpanded?: boolean;
     /** Lets interactive cards (job form) write back into the message map. */
     updateMessages: (updater: (prev: Map<string, ChatMessage>) => Map<string, ChatMessage>) => void;
     /** Send a starter question to the agent (wired to the idle StarterScreen). */
@@ -64,15 +57,16 @@ interface CanvasProps {
 export const Canvas: React.FC<CanvasProps> = ({
     visuals,
     flashcards,
-    agentState,
+    // agentState — intentionally not destructured: the thinking blur moved to a
+    // bounded overlay in AgentInterface, so Canvas no longer blurs its content.
     variant,
+    isExpanded = false,
     updateMessages,
     sendText,
     agentText,
     isAgentInterim,
 }) => {
     const isWindow = variant === 'window';
-    const { ref: scrollRef, canScrollDown, scrollDown } = useScrollAffordance<HTMLDivElement>();
 
     const {
         latestVisualMessage,
@@ -83,15 +77,16 @@ export const Canvas: React.FC<CanvasProps> = ({
         mapPolylineMessage,
         globalPresenceMessage,
         nearbyOfficesMessage,
-        officeDetailsMessage,
         jobApplicationPreviewMessage,
         jobApplicationSubmitMessage,
     } = visuals;
 
+    // Note: the "thinking" blur is NOT applied to the whole Canvas anymore — it
+    // would also blur the suggested-questions strip. AgentInterface now renders a
+    // bounded center-only blur overlay instead (header + dock + questions stay sharp).
     const className = [
-        'h-full w-full flex flex-col items-center overflow-y-auto overflow-x-hidden z-0 scrollbar-hide transition-all duration-500',
+        'absolute inset-0 flex flex-col items-center overflow-y-auto overflow-x-hidden z-0 scrollbar-hide transition-all duration-500',
         isWindow ? 'p-4 pt-14 pb-28' : 'p-4 pt-20 pb-40 md:p-12 md:pb-32',
-        agentState === 'thinking' ? 'blur-sm scale-95 opacity-50' : 'blur-0 scale-100 opacity-100',
     ].join(' ');
 
     // The agent shows ONE visual at a time — whichever message is latest. Each
@@ -151,12 +146,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                         <NearbyOffices key={nearbyOfficesMessage.id} data={nearbyOfficesMessage.nearbyOfficesData} />
                     </div>
                 );
-            case 'office_details':
-                return officeDetailsMessage?.officeDetailsData && (
-                    <div className="flex w-full max-w-2xl justify-center">
-                        <OfficeDetails key={officeDetailsMessage.id} data={officeDetailsMessage.officeDetailsData} />
-                    </div>
-                );
             case 'job_application_submit':
                 return jobApplicationSubmitMessage?.jobApplicationData && (
                     <div className="flex w-full justify-center">
@@ -180,30 +169,23 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     const visual = renderVisual();
     const content = visual ?? (flashcards.length > 0 ? (
-        <CardDisplay cards={flashcards} variant={variant} />
+        <CardDisplay cards={flashcards} variant={variant} isExpanded={isExpanded} />
     ) : null);
 
     return (
-        <div className="absolute inset-0">
-            <div ref={scrollRef} className={className}>
-                {content ? (
-                    <div className="m-auto flex w-full flex-col items-center">
-                        {content}
-                    </div>
-                ) : (
-                    <StarterScreen
-                        variant={variant}
-                        onQuestionClick={sendText}
-                        agentText={agentText}
-                        isAgentInterim={isAgentInterim}
-                    />
-                )}
-            </div>
-            <ScrollHint
-                show={canScrollDown}
-                onClick={scrollDown}
-                className={isWindow ? 'bottom-24' : 'bottom-28 md:bottom-24'}
-            />
+        <div className={className} style={{ scrollbarWidth: 'none' }}>
+            {content ? (
+                <div className="m-auto flex w-full flex-col items-center">
+                    {content}
+                </div>
+            ) : (
+                <StarterScreen
+                    variant={variant}
+                    onQuestionClick={sendText}
+                    agentText={agentText}
+                    isAgentInterim={isAgentInterim}
+                />
+            )}
         </div>
     );
 };

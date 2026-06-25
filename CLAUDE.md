@@ -41,46 +41,15 @@ The AI is a LiveKit voice/text agent, not a request/response API:
 3. `useAgentInteraction` composes three hooks:
    - `useAgentMessages` — parses inbound LiveKit **data-channel** messages and
      transcriptions into a `Map<id, ChatMessage>`. UI is message-type driven
-     (topics like `ui.flashcard`, `ui.infographic`, `ui.contact_form`, `ui.meeting_form`,
-     `map.polyline`, `ui.global_presence`, `ui.nearby_offices`, `ui.office_details`,
-     `ui.job_application`, `ui.location_request`).
+     (topics like `ui.flashcard`, `ui.contact_form`, `ui.meeting_form`,
+     `map.polyline`, `ui.global_presence`, `ui.nearby_offices`, `ui.job_application`,
+     `ui.location_request`).
    - `useInteractionControl` — voice/text mode, mic toggle, `sendText` (topic `lk.chat`).
    - `useContextSync` — pushes UI/user context snapshots back to the agent
      (topics `ui.context`, `user.context`).
 
 Message/UI shapes live in `app/_shared/types/agentTypes.ts` (`ChatMessage` and the
 per-feature data types). Import types from there, not through the hooks.
-
-**Two card types — routed by `payload.type`, not topic.** The agent sends two visual
-cards over the data channel: `flashcard` (image-led) and `infographic` (composed,
-text-led — replaces the old `rich_card`). `ui.flashcard` is the deck stream
-(`publish_ui_stream`; each packet is one card of either type + `stream_id`/`card_index`,
-closed by an `end_of_stream` marker); `ui.infographic` is a single agent-authored
-infographic (`publish_infographic`, instant). `useAgentMessages` routes by
-`data.type` (topic is a fallback) and treats flashcard + infographic as one deck for
-grouping/clearing. `CardDisplay` renders both per-card: flashcards via `Flashcard`,
-infographics via `InfographicRenderer`. (`rich_card` is gone; kept only as a defensive
-alias → infographic.)
-
-**Flashcard** (`_shared/components/flashcard/`) — the classic look: renders flat
-(`chromeless`) directly on the widget glass in the **window** variant (no white panel),
-on a soft scrim in **immersive**. Body markdown goes through shared `MD_COMPONENTS`
-(`flashcard/markdownComponents.tsx` — blue check-circle bullets, accent-barred headings,
-gradient dividers); `bullets`→check list, `chips`→footer pills (`chipIcon`).
-
-**Infographic** (`_shared/components/infographic/`) — its OWN polished elevated card
-(top blue→emerald accent rail, ring + shadow). `InfographicRenderer` renders a header
-(icon + title), optional `hero` (description + `PresetGraphic`), ordered `sections[]`
-(`markdown` | `bullet_list` | `icon_bullets` | `stats` | `cta_banner` via `blocks.tsx`),
-and `chips`. `PresetGraphic` maps a key (`devops_loop`, `cicd_pipeline`, `cloud_stack`,
-`ai_workflow`, `security_shield`, `growth_chart`, `web_development`, `data_analytics`,
-`team_collaboration`, `digital_marketing`) → a bundled animated SVG illustration, and
-renders nothing on an unknown key; keep the key list in sync with the backend prompt. Unknown section types
-degrade to a markdown block. `visual_intent` (`neutral|urgent|success|warning|processing`)
-picks the accent via `INTENT_COLORS`. Entrance is Apple-style: `.md-stagger` cascade +
-`cardVariants` spring. The backend payload shape + canonical preset-key list live in
-`docs/INFOGRAPHIC_BACKEND_SPEC.md` — the source of truth when adding section types or
-preset keys.
 
 ### Auth
 
@@ -113,7 +82,7 @@ app/
     ├── ui/          CTAButton, PageBackground
     └── components/  the shared agent rendering layer:
         ├── agent/        AgentInterface (prop `variant: 'immersive' | 'window'`), CardDisplay, …
-        ├── forms/ maps/ flashcard/ infographic/ media/
+        ├── forms/ maps/ flashcard/ media/
         └── primitives/   SmartIcon, StarterScreen, BarVisualizer, useAudioFFT, DynamicImage
 ```
 
@@ -139,7 +108,6 @@ Conventions:
   (`LiveKitAssistantProvider`, `SimpleVoiceAssistant`, transcription hooks),
   separate from the `app/dynamic` implementation.
 - `types/globals.d.ts` — declares non-JS imports (e.g. `*.css`) for TypeScript.
-- `docs/` — backend contract specs (e.g. `INFOGRAPHIC_BACKEND_SPEC.md`).
 - Styling is Tailwind v4 (no config file; theme vars in `app/globals.css`),
   inline classNames only, framer-motion for animation. Light theme (`slate`/`blue`).
 

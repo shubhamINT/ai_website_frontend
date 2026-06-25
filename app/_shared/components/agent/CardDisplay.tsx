@@ -2,76 +2,57 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ChatMessage } from '@/app/_shared/types/agentTypes';
 import { Flashcard } from '../flashcard/Flashcard';
-import { InfographicRenderer } from '../infographic/InfographicRenderer';
-import { CardCarousel } from '../primitives/CardCarousel';
+import { CardStack } from '../primitives/CardStack';
 
 interface CardDisplayProps {
     cards: ChatMessage[];
     /** 'window' shows multiple cards as a swipeable deck instead of a grid. */
     variant?: 'immersive' | 'window';
+    /** Window deck only: card is in its wide state → CardStack moves arrows to the sides. */
+    isExpanded?: boolean;
 }
 
-// A card renders if it's a flashcard with a title or an infographic with data.
-const isRenderable = (card: ChatMessage) =>
-    (card.type === 'flashcard' && card.cardData?.title !== undefined) ||
-    (card.type === 'infographic' && card.infographicData !== undefined);
-
-export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) => {
+export const CardDisplay = ({ cards, variant = 'immersive', isExpanded = false }: CardDisplayProps) => {
     if (cards.length === 0) return null;
 
-    const validCards = cards.filter(isRenderable);
+    const validCards = cards.filter((card): card is ChatMessage & { cardData: NonNullable<ChatMessage['cardData']> } =>
+        card && card.cardData !== undefined && card.cardData.title !== undefined
+    );
     if (validCards.length === 0) return null;
 
     const latestFlashcardId = validCards[validCards.length - 1].id;
     const count = validCards.length;
 
-    // Render one card by type: image flashcard (flat) or composed infographic
-    // (its own elevated card surface). Both coexist in one deck / grid.
-    const renderCard = (card: ChatMessage, chromeless: boolean) => {
-        if (card.type === 'infographic') {
-            return (
-                <InfographicRenderer
-                    schema={card.infographicData!}
-                    card_index={card.infographicData?.card_index ?? 0}
-                    layoutId={card.id}
-                />
-            );
-        }
-        return (
-            <Flashcard
-                {...card.cardData!}
-                layout="default"
-                chromeless={chromeless}
-                card_index={card.cardData?.card_index ?? 0}
-                layoutId={card.id}
-                shouldStreamText={card.id === latestFlashcardId}
-            />
-        );
-    };
-
-    // Widget: ONE card visible at a time. Cards slide horizontally (swipe / arrows
-    // / dots) and the off-screen ones are clipped. Flashcards render `chromeless` so
-    // they sit flat on the widget glass (classic look); infographics bring their own
-    // elevated card surface.
-    if (variant === 'window') {
+    // Widget: more than one card → 3D stacked deck (upcoming cards peek from the
+    // top-right; the newest rises to the front as the agent speaks). The pt/pr
+    // headroom keeps the peeking cards from clipping at the container edge.
+    if (variant === 'window' && count > 1) {
         return (
             <div className="relative flex w-full flex-col items-center">
-                <CardCarousel showDots={count > 1} className="z-10 w-full px-3 max-w-[min(94vw,42rem)]">
+                <CardStack showDots isExpanded={isExpanded} className="z-10 mx-auto w-full max-w-[min(92vw,30rem)] px-6 pt-14">
                     {validCards.map((card) => (
                         <div key={card.id} className="flex w-full items-start">
-                            {renderCard(card, true)}
+                            <Flashcard
+                                {...card.cardData}
+                                layout="default"
+                                displayMode="grid"
+                                card_index={card.cardData?.card_index ?? 0}
+                                layoutId={card.id}
+                                shouldStreamText={card.id === latestFlashcardId}
+                            />
                         </div>
                     ))}
-                </CardCarousel>
+                </CardStack>
             </div>
         );
     }
 
-    // auto-rows-fr → every row equal height = the tallest card; cards stretch (h-full)
-    // so every flashcard ends up the same size, shorter ones padded with empty space.
-    let gridClasses = "grid w-full auto-rows-fr gap-4 md:gap-6 mx-auto ";
+    let gridClasses = "grid w-full auto-rows-max items-start gap-4 md:gap-6 mx-auto ";
     if (count === 1) {
-        gridClasses += "grid-cols-1 max-w-[min(92vw,60rem)]";
+        // Window mode: match the CardStack width so single cards look the same as the deck
+        gridClasses += variant === 'window'
+            ? "grid-cols-1 max-w-[min(90vw,30rem)]"
+            : "grid-cols-1 max-w-[min(92vw,60rem)]";
     } else if (count === 2) {
         gridClasses += "grid-cols-1 md:grid-cols-2 max-w-5xl";
     } else if (count === 3) {
@@ -95,11 +76,13 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
                             (card.cardData?.media?.urls && card.cardData.media.urls.length > 0)
                         );
 
-                        const itemClass = "flex w-full h-full items-stretch";
+                        const itemClass = "flex w-full self-start items-start";
 
-                        // Determine internal Flashcard layout based on grid context — NOT from backend
+                        // Determine internal Flashcard layout based on grid context — NOT from backend.
+                        // Window mode always stays 'default' so the card looks identical during
+                        // the single-card narration phase and the multi-card CardStack browse phase.
                         let layoutProp: 'default' | 'horizontal' = 'default';
-                        if (count === 1 && hasMedia && card.type === 'flashcard') {
+                        if (variant !== 'window' && count === 1 && hasMedia) {
                             layoutProp = 'horizontal';
                         }
 
@@ -123,21 +106,14 @@ export const CardDisplay = ({ cards, variant = 'immersive' }: CardDisplayProps) 
                                 transition={{ type: "spring", stiffness: 180, damping: 22 }}
                                 className={itemClass}
                             >
-                                {card.type === 'infographic' ? (
-                                    <InfographicRenderer
-                                        schema={card.infographicData!}
-                                        card_index={card.infographicData?.card_index ?? 0}
-                                        layoutId={card.id}
-                                    />
-                                ) : (
-                                    <Flashcard
-                                        {...card.cardData!}
-                                        layout={layoutProp}
-                                        card_index={card.cardData?.card_index ?? 0}
-                                        layoutId={card.id}
-                                        shouldStreamText={card.id === latestFlashcardId}
-                                    />
-                                )}
+                                <Flashcard
+                                    {...card.cardData}
+                                    layout={layoutProp}
+                                    displayMode={variant === 'window' ? 'grid' : 'list'}
+                                    card_index={card.cardData?.card_index ?? 0}
+                                    layoutId={card.id}
+                                    shouldStreamText={card.id === latestFlashcardId}
+                                />
                             </motion.div>
                         );
                     })}

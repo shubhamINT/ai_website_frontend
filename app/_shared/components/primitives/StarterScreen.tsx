@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmartIcon } from './SmartIcon';
 import { SwipeDeck } from './SwipeDeck';
+import { BlobVisualizer } from './BlobVisualizer';
 
 interface StarterScreenProps {
     /** 'window' renders the compact widget welcome screen; 'immersive' the /dynamic grid. */
@@ -56,58 +57,87 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
     agentText,
     isAgentInterim,
 }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom whenever text changes so newest text is always visible
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [agentText]);
+
     if (variant === 'window') {
         const speaking = Boolean(agentText && agentText.trim());
         return (
-            <div className="flex w-full max-w-xl flex-1 flex-col">
-                {/* Middle — the greeting, swapped for the live transcript as Vani speaks */}
-                <div className="flex flex-1 items-center justify-center px-6">
-                    <AnimatePresence mode="wait">
-                        {speaking ? (
-                            <motion.p
-                                key="transcript"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                                className="text-center text-xl font-medium leading-relaxed tracking-tight text-slate-800 md:text-2xl"
-                            >
-                                {agentText}
-                                {isAgentInterim && (
-                                    <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[0.15em] animate-pulse rounded-full bg-blue-500 align-middle" />
-                                )}
-                            </motion.p>
-                        ) : (
-                            <motion.h1
-                                key="greeting"
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                                className="text-center text-2xl font-semibold leading-snug tracking-tight md:text-3xl"
-                            >
-                                <span className="text-blue-600">Welcome to INT.</span>
-                                <br />
-                                <span className="text-slate-900">I am Vani,</span>{' '}
-                                <span className="text-blue-600">do let me know how can I help you?</span>
-                            </motion.h1>
-                        )}
-                    </AnimatePresence>
+            <div className="flex w-full max-w-xl flex-1 flex-col overflow-hidden">
+
+                {/* Zone 1 — BlobVisualizer: shrink-0 so it never gets pushed by text */}
+                <div className="flex shrink-0 items-center justify-center pt-3 pb-2">
+                    <BlobVisualizer />
                 </div>
 
-                {/* Bottom — starter questions as a swipeable strip, just above the dock */}
+                {/* Zone 2 — Text area: NO background/overlay. A CSS mask fades the text's
+                    own pixels to transparent at the top/bottom edges, so the real card
+                    gradient shows through unchanged (no box, no seam, no color matching). */}
+                <div
+                    ref={scrollRef}
+                    className="flex flex-1 flex-col justify-center overflow-y-auto px-6"
+                    style={{
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        WebkitOverflowScrolling: 'touch',
+                        maskImage: 'linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)',
+                    }}
+                >
+                    <div className="w-full py-8">
+                        <AnimatePresence mode="wait">
+                            {speaking ? (
+                                <motion.p
+                                    key="transcript"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="text-center text-xl font-medium leading-relaxed tracking-tight text-slate-800 md:text-2xl"
+                                >
+                                    {agentText}
+                                    {isAgentInterim && (
+                                        <span className="ml-0.5 inline-block h-[1.1em] w-0.5 translate-y-[0.15em] animate-pulse rounded-full bg-blue-500 align-middle" />
+                                    )}
+                                </motion.p>
+                            ) : (
+                                <motion.h1
+                                    key="greeting"
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                                    className="text-center text-2xl font-semibold leading-snug tracking-tight md:text-3xl"
+                                >
+                                    <span className="text-blue-600">Welcome to INT.</span>
+                                    <br />
+                                    <span className="text-slate-900">I am Vani,</span>{' '}
+                                    <span className="text-blue-600">do let me know how can I help you?</span>
+                                </motion.h1>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* Zone 3 — SwipeDeck: shrink-0 so it's always fully visible above the dock */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
-                    className="mt-auto w-full pb-1"
+                    className="w-full shrink-0 pb-1"
                 >
                     <SwipeDeck mode="strip">
                         {questions.map((q, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => onQuestionClick?.(q.text)}
-                                className="group flex w-full items-center gap-3 rounded-2xl bg-white/80 px-4 py-3.5 text-left ring-1 ring-black/[0.04] shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]"
+                                className="group flex w-full items-center gap-3 rounded-2xl bg-white/80 px-4 py-3.5 text-left ring-1 ring-black/4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]"
                             >
                                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 ${colorMap[q.color].text}`}>
                                     <SmartIcon iconRef={q.icon} className="h-5 w-5" />
@@ -148,7 +178,7 @@ export const StarterScreen: React.FC<StarterScreenProps> = ({
                         transition={{ delay: 0.4 + idx * 0.1, duration: 0.5 }}
                         className="group relative flex flex-col items-start gap-5 overflow-hidden rounded-[2.5rem] bg-white/70 p-8 text-left backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.02)]"
                     >
-                        <div className={`absolute -right-16 -top-16 h-32 w-32 rounded-full ${colorMap[q.color].glow} blur-[40px] opacity-40`} />
+                        <div className={`absolute -right-16 -top-16 h-32 w-32 rounded-full ${colorMap[q.color].glow} blur-2xl opacity-40`} />
 
                         <div className="flex w-full items-start justify-between">
                             <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-[0_8px_20px_rgba(0,0,0,0.06)] ring-1 ring-zinc-100 ${colorMap[q.color].text}`}>

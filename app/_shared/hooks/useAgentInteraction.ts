@@ -22,7 +22,7 @@ export function useAgentInteraction() {
     const room = useRoomContext();
 
     // 1. Message Handling
-    const { messages, messagesRef, updateMessages, onStreamCompleteRef } = useAgentMessages();
+    const { messages, messagesRef, updateMessages, onStreamCompleteRef, forcePauseRef } = useAgentMessages();
 
     // 2. Context Synchronization (Passes messagesRef to sync snapshots)
     useContextSync(messagesRef, onStreamCompleteRef);
@@ -68,6 +68,7 @@ export function useAgentInteraction() {
         userTrack,   // User mic
         toggleMic,
         sendText,
-        roomState: room?.state
+        roomState: room?.state,
+        forcePauseRef,
     };
 }

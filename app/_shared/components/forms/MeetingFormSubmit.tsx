@@ -8,8 +8,6 @@ interface MeetingFormSubmitProps {
 }
 
 export const MeetingFormSubmit: React.FC<MeetingFormSubmitProps> = ({ data }) => {
-    const dt = data.start_time ? new Date(data.start_time) : null;
-    const validDate = dt !== null && !isNaN(dt.getTime());
     return (
         <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -77,16 +75,14 @@ export const MeetingFormSubmit: React.FC<MeetingFormSubmitProps> = ({ data }) =>
                             </span>
                             <span className="text-xs font-semibold text-zinc-700 truncate">{data.subject}</span>
                         </div>
-                        {validDate && (
                         <div className="flex items-center gap-2.5">
                             <span className="p-1.5 rounded-full bg-green-100 text-green-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </span>
-                            <span className="text-xs font-semibold text-zinc-700 truncate">{dt!.toLocaleString()}</span>
+                            <span className="text-xs font-semibold text-zinc-700 truncate">{new Date(data.start_time).toLocaleString()}</span>
                         </div>
-                        )}
                     </div>
                 </motion.div>
 

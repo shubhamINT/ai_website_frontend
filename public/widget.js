@@ -48,19 +48,11 @@
         height: "150px",
     };
 
-    // Card geometry (keep in sync with /embed): the card is h-[768px], offset
+    // Card geometry (keep in sync with /embed): the card is h-[720px], offset
     // bottom-6/right-6 (24px). BUFFER covers that offset plus the drop shadow so
     // the iframe box never clips the card.
-    var CARD_HEIGHT = 768;
+    var CARD_HEIGHT = 720;
     var CARD_BUFFER = 96;
-
-    // Free drag-resize: minimum usable iframe box (header + dock + one card). Max is
-    // the viewport. The whole drag gesture runs inside the iframe (/embed) with native
-    // pointer capture; the loader just applies the posted sizes. Not persisted — each
-    // open starts at the preset size.
-    var MIN_W = 360;
-    var MIN_H = 420;
-    var IFRAME_TRANSITION = "width 180ms ease, height 180ms ease";
 
     /**
      * Resolve where /embed is served from. Priority:
@@ -92,9 +84,11 @@
      */
     function mountWidget(opts, scriptEl) {
         var origin = resolveOrigin(opts, scriptEl);
-        // `free` = the current drag-resized iframe-box size {w,h} for this open session,
-        // or null (use presets). Reset to null on collapse so each open is the preset.
-        var state = { mode: "collapsed", width: 544, free: null };
+        // hostPath = the current page of the HOST site. The widget (in a cross-
+        // origin iframe) can't read it, so we capture it here and relay it in so
+        // the agent knows which page the visitor is on. SPAs update it on route
+        // change via a { type: 'vani:host-route', path } message (see onMessage).
+        var state = { mode: "collapsed", width: 480, hostPath: window.location.pathname };
 
         var iframe = document.createElement("iframe");
         iframe.src = origin + "/embed";
@@ -113,7 +107,6 @@
             background: "transparent",
             colorScheme: "normal",
             zIndex: "2147483647", // max — sit above any host overlay
-            transition: IFRAME_TRANSITION, // smooth preset/resize; killed during drag
         };
         Object.keys(base).forEach(function (k) {
             iframe.style[k] = base[k];
@@ -141,7 +134,7 @@
             }
             // Bottom-right popup card on tablet/desktop — only the corner is covered,
             // the rest of the host page stays clickable.
-            var w = Math.min((width || 544) + CARD_BUFFER, window.innerWidth);
+            var w = Math.min((width || 480) + CARD_BUFFER, window.innerWidth);
             var h = Math.min(CARD_HEIGHT + CARD_BUFFER, window.innerHeight);
             s.top = "auto";
             s.left = "auto";
@@ -151,24 +144,9 @@
             s.height = h + "px";
         }
 
-        // Free drag size — anchored bottom-right like applyOpen, but width AND height
-        // are arbitrary (bypasses the CARD_HEIGHT clamp), bounded by [MIN, viewport].
-        function applyFree(w, h) {
-            var s = iframe.style;
-            s.top = "auto";
-            s.left = "auto";
-            s.bottom = "0px";
-            s.right = "0px";
-            s.width = Math.min(Math.max(w, MIN_W), window.innerWidth) + "px";
-            s.height = Math.min(Math.max(h, MIN_H), window.innerHeight) + "px";
-        }
-
         function render() {
-            if (state.mode !== "open") { applyCollapsed(); return; }
-            // Mobile is always a full-screen sheet — ignore any dragged desktop size.
-            if (isMobile()) { applyOpen(state.width); return; }
-            if (state.free) { applyFree(state.free.w, state.free.h); return; }
-            applyOpen(state.width);
+            if (state.mode === "open") applyOpen(state.width);
+            else applyCollapsed();
         }
 
         // Tell /embed the host form factor. It can't trust its own CSS breakpoints
@@ -177,20 +155,12 @@
         function notifyForm() {
             if (!iframe.contentWindow) return;
             iframe.contentWindow.postMessage(
-                // freeSize lets /embed switch to the fluid card immediately on open, so
-                // it never flashes the 544px preset before the host applies the saved box.
-                { type: "vani:host", isMobile: isMobile(), freeSize: state.free || null },
+                { type: "vani:host", isMobile: isMobile(), path: state.hostPath },
                 origin
             );
         }
 
-        // ── Free drag-resize ──────────────────────────────────────────────────────
-        // The whole gesture runs inside the iframe with native pointer capture
-        // (ChatWindowShell). The iframe posts `vani:resize-free` messages with the
-        // desired box; we just apply them here — no host overlay needed.
-
-        // Resize / ready / free-drag requests from /embed. Named so destroy() can
-        // remove it.
+        // Resize / ready requests from /embed. Named so destroy() can remove it.
         function onMessage(event) {
             if (event.origin !== origin) return; // only trust our own embed
             var data = event.data;
@@ -200,38 +170,22 @@
                 notifyForm();
                 return;
             }
-            // The iframe drives the whole drag gesture; we just apply the posted box.
-            if (data.type === "vani:resize-free") {
-                if (data.phase === "move" && typeof data.width === "number" && typeof data.height === "number") {
-                    iframe.style.transition = "none";
-                    applyFree(data.width, data.height);
-                }
-                if (data.phase === "end") {
-                    var r = iframe.getBoundingClientRect();
-                    state.free = {
-                        w: Math.min(Math.max(Math.round(r.width), MIN_W), window.innerWidth),
-                        h: Math.min(Math.max(Math.round(r.height), MIN_H), window.innerHeight),
-                    };
-                    iframe.style.transition = IFRAME_TRANSITION;
-                    notifyForm();
-                }
+            // Host SPA changed route — record it and relay into the iframe so the
+            // widget (and the agent) learn the new page. Posted by the host app
+            // itself, so it arrives same-origin and passes the origin check above.
+            if (data.type === "vani:host-route") {
+                if (typeof data.path === "string") state.hostPath = data.path;
+                notifyForm();
                 return;
             }
             if (data.type !== "vani:resize") return;
             state.mode = data.mode === "open" ? "open" : "collapsed";
             if (typeof data.width === "number") state.width = data.width;
-            // The preset path wins over a custom drag; clear free so the preset takes effect.
-            if (data.mode === "open") state.free = null;
             render();
         }
 
         // Re-apply geometry and re-tell /embed on viewport changes (rotation, resize).
         function onResize() {
-            // Never let a saved size exceed the (possibly shrunk) viewport.
-            if (state.free) {
-                state.free.w = Math.min(state.free.w, window.innerWidth);
-                state.free.h = Math.min(state.free.h, window.innerHeight);
-            }
             render();
             notifyForm();
         }

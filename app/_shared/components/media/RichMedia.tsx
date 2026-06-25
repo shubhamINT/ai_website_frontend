@@ -7,34 +7,22 @@ import {
     MediaType,
     detectMediaType,
     isVideoType,
+    getAspectClass,
+    getMinHeightClass,
     getYoutubeId,
     getVimeoId,
 } from './mediaDetection';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
-// No mediaType or aspectRatio — both are derived automatically. Image & video
-// frames size to the media's REAL aspect ratio (read on load); portrait clamps to
-// a max height and fills its side gutters with a soft blurred backdrop (no crop,
-// no black bars). YouTube / Vimeo embeds stay 16:9.
+// No mediaType or aspectRatio — both are derived automatically from the URL.
 
 interface RichMediaProps {
     urls?: string[];
     query?: string;
     source?: string;
     alt?: string;
-    // Optional aspect hints from the backend — used as the INITIAL ratio so the
-    // frame reserves correct space before the media loads (no 16:9 flash).
-    orientation?: 'portrait' | 'landscape' | 'square';
-    width?: number;
-    height?: number;
-    poster?: string;
+    fill?: boolean;   // fill a fixed-height parent instead of using intrinsic aspect
 }
-
-// Portrait frames never exceed this height so a tall reel can't dominate the card.
-const MAX_FRAME = 'max-h-[min(58vh,460px)]';
-const DEFAULT_RATIO = 16 / 9;
-
-const ORIENTATION_RATIO: Record<string, number> = { portrait: 3 / 4, landscape: 16 / 9, square: 1 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -43,32 +31,19 @@ export const RichMedia: React.FC<RichMediaProps> = ({
     query,
     source,
     alt = 'Media content',
-    orientation,
-    width,
-    height,
-    poster,
+    fill = false,
 }) => {
-    // Backend hint → initial ratio (overridden by the real measurement on load).
-    const hintRatio = (width && height) ? width / height : (orientation ? ORIENTATION_RATIO[orientation] : null);
-
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading]       = useState(true);
-    // Real width/height ratio of the active media, measured on load. Seeded from
-    // the backend hint (if any) so the frame is correct before load.
-    const [ratio, setRatio]               = useState<number | null>(hintRatio);
 
     const safeUrls = Array.isArray(urls) ? urls : (typeof urls === 'string' ? [urls] : []);
     const firstUrl = safeUrls[0] ?? '';
 
     useEffect(() => {
-        const resetTimer = window.setTimeout(() => { setCurrentIndex(0); setIsLoading(true); setRatio(hintRatio); }, 0);
+        const resetTimer = window.setTimeout(() => { setCurrentIndex(0); setIsLoading(true); }, 0);
         const loadTimer  = window.setTimeout(() => setIsLoading(false), 2500);
         return () => { window.clearTimeout(resetTimer); window.clearTimeout(loadTimer); };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [safeUrls.length, firstUrl, query, hintRatio]);
-
-    // New media selected → re-measure (fall back to the backend hint meanwhile).
-    useEffect(() => { setRatio(hintRatio); setIsLoading(true); }, [currentIndex, hintRatio]);
+    }, [safeUrls.length, firstUrl, query]);
 
     // ─── Single media renderers ───────────────────────────────────────────────
 
@@ -77,18 +52,8 @@ export const RichMedia: React.FC<RichMediaProps> = ({
 
         if (type === 'video') return (
             <div className={frame}>
-                {/* blurred backdrop fills portrait/landscape gutters — no black bars */}
-                <div className="absolute inset-0 scale-110 opacity-40">
-                    <video src={url} autoPlay muted loop playsInline aria-hidden="true"
-                        className="h-full w-full object-cover blur-2xl saturate-[1.15]" />
-                </div>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.30),rgba(255,255,255,0)_58%),linear-gradient(180deg,rgba(255,255,255,0.24),rgba(255,255,255,0.04))]" />
-                <video src={url} autoPlay muted loop playsInline poster={poster}
-                    className="relative z-10 h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
-                    onLoadedMetadata={(e) => {
-                        const v = e.currentTarget;
-                        if (v.videoWidth && v.videoHeight) setRatio(v.videoWidth / v.videoHeight);
-                    }}
+                <video src={url} autoPlay muted loop playsInline
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                     onLoadedData={() => setIsLoading(false)} />
             </div>
         );
@@ -119,39 +84,28 @@ export const RichMedia: React.FC<RichMediaProps> = ({
             );
         }
 
-        // Image
+        // Image — fill the slot edge-to-edge / corner-to-corner (object-cover).
+        // The parent container clips to its rounded corners (overflow-hidden), so
+        // no padding, letterboxing, or blurred backdrop is needed.
         return (
-            <>
-                <div className="absolute inset-0 scale-110 opacity-30">
-                    <img src={url} alt="" aria-hidden="true"
-                        className="h-full w-full object-cover blur-2xl saturate-[1.15]" />
-                </div>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.34),rgba(255,255,255,0)_58%),linear-gradient(180deg,rgba(255,255,255,0.28),rgba(255,255,255,0.04))]" />
-                <div className="relative z-10 flex h-full w-full items-center justify-center p-4 md:p-5">
-                    <img
-                        src={url}
-                        alt={`${alt} ${idx + 1}`}
-                        className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
-                        onLoad={(e) => {
-                            const img = e.currentTarget;
-                            if (img.naturalWidth && img.naturalHeight) setRatio(img.naturalWidth / img.naturalHeight);
-                            setIsLoading(false);
-                        }}
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://placehold.co/1200x900/f4f4f5/71717a?text=${encodeURIComponent(alt || 'Visual')}`;
-                            setIsLoading(false);
-                        }}
-                    />
-                </div>
-            </>
+            <div className={frame}>
+                <img
+                    src={url}
+                    alt={`${alt} ${idx + 1}`}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                    onLoad={() => setIsLoading(false)}
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://placehold.co/1200x900/f4f4f5/71717a?text=${encodeURIComponent(alt || 'Visual')}`;
+                        setIsLoading(false);
+                    }}
+                />
+            </div>
         );
     };
 
     // ─── Base container ───────────────────────────────────────────────────────
 
-    // Roomless / floating: no frame ring, no heavy panel bg — just a softly
-    // rounded media surface with a gentle ambient shadow so it floats.
-    const baseContainer = 'group relative isolate w-full overflow-hidden rounded-[1.25rem] drop-shadow-[0_12px_28px_rgba(0,0,0,0.10)] transition-all duration-500 md:rounded-[1.6rem]';
+    const baseContainer = 'group relative isolate w-full overflow-hidden rounded-[1.1rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(244,244,245,0.94))] ring-1 ring-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_35px_rgba(0,0,0,0.08)] transition-all duration-500 md:rounded-[1.45rem]';
 
     // ─── Priority 1: Direct URLs ──────────────────────────────────────────────
 
@@ -159,18 +113,9 @@ export const RichMedia: React.FC<RichMediaProps> = ({
         const currentUrl = safeUrls[currentIndex] ?? safeUrls[0];
         const mediaType  = detectMediaType(currentUrl);
 
-        // Embeds are fixed 16:9; image/video use their measured ratio (16:9 until known).
-        const isEmbed = mediaType === 'youtube' || mediaType === 'vimeo';
-        const frameRatio = isEmbed ? DEFAULT_RATIO : (ratio ?? DEFAULT_RATIO);
-        // Clamp the box height only for portrait media so tall content can't dominate.
-        const frameHeightClass = !isEmbed && frameRatio < 1 ? MAX_FRAME : '';
-
         return (
-            <div className="flex flex-col gap-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-700">
-                <div
-                    className={`${baseContainer} ${frameHeightClass} mx-auto`}
-                    style={{ aspectRatio: frameRatio }}
-                >
+            <div className={`flex flex-col gap-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-700 ${fill ? 'h-full' : ''}`}>
+                <div className={`${baseContainer} ${fill ? 'h-full w-full' : `${getAspectClass(mediaType)} ${getMinHeightClass(mediaType)}`}`}>
 
                     {/* Loading shimmer */}
                     {isLoading && (

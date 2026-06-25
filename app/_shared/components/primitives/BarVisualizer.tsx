@@ -10,13 +10,22 @@ interface BarVisualizerProps {
     userTrack?: TrackReferenceOrPlaceholder;
     mode?: 'full' | 'mini';
     barCount?: number;
+    /** Override bar width in px (defaults to mode: mini 3, full 4). */
+    barWidth?: number;
+    /** Override the max bar height in px when speaking (defaults to mode: mini 24, full 64). */
+    maxBarHeight?: number;
+    /** Override bar color (e.g. translucent white for a glass look). Defaults to the speaking theme color. */
+    barColor?: string;
 }
 
 export const BarVisualizer: React.FC<BarVisualizerProps> = ({
     agentTrack,
     userTrack,
     mode = 'full',
-    barCount: customBarCount
+    barCount: customBarCount,
+    barWidth,
+    maxBarHeight,
+    barColor,
 }) => {
     // Dynamic bar count based on mode
     const barCount = customBarCount || (mode === 'mini' ? 12 : 30);
@@ -74,13 +83,16 @@ export const BarVisualizer: React.FC<BarVisualizerProps> = ({
                     isSpeaking={isSpeaking}
                     index={i}
                     total={barCount}
+                    barWidth={barWidth}
+                    maxBarHeight={maxBarHeight}
+                    barColor={barColor}
                 />
             ))}
         </div>
     );
 };
 
-const VisualizerBar = ({ value, theme, mode, isSpeaking, index, total }: any) => {
+const VisualizerBar = ({ value, theme, mode, isSpeaking, index, total, barWidth, maxBarHeight, barColor }: any) => {
     // Enhance the value with some shaping (bell curve) to avoid "wall of sound" look if input is flat
     // but relies mostly on FFT data.
 
@@ -95,18 +107,24 @@ const VisualizerBar = ({ value, theme, mode, isSpeaking, index, total }: any) =>
     const centerOffset = Math.abs(index - (total - 1) / 2) / ((total - 1) / 2); // 0 at center, 1 at edges
     const positionMultiplier = 0.5 + 0.5 * Math.pow(Math.cos(centerOffset * Math.PI / 2), 0.5); // 1.0 at center, 0.5 at edges
 
-    // Calculate target height
+    // Calculate target height (maxHeight overridable so a host can make speaking
+    // bars grow bigger; falls back to the mode default).
     const baseHeight = mode === 'mini' ? 4 : 6;
-    const maxHeight = mode === 'mini' ? 24 : 64; // Adjusted max height to fit typical container
+    const maxHeight = maxBarHeight ?? (mode === 'mini' ? 24 : 64);
 
     const targetHeight = baseHeight + (norm * (maxHeight - baseHeight) * positionMultiplier);
+
+    // Idle wave: stagger delay spreads the sine phase across all bars (1.6 s full
+    // cycle), creating a slow ripple. Uses CSS scaleY (not height) so it doesn't
+    // conflict with framer-motion's spring height animation.
+    const idleDelay = isSpeaking ? '0s' : `${((index / total) * 1.6).toFixed(2)}s`;
 
     return (
         <motion.div
             initial={{ height: baseHeight }}
             animate={{
                 height: targetHeight,
-                backgroundColor: theme.primary,
+                backgroundColor: barColor ?? theme.primary,
             }}
             transition={{
                 height: {
@@ -118,14 +136,18 @@ const VisualizerBar = ({ value, theme, mode, isSpeaking, index, total }: any) =>
                 backgroundColor: { duration: 0.2 }
             }}
             style={{
-                boxShadow: isSpeaking && value > 10 ? `0 0 12px ${theme.glow}` : 'none',
-                width: mode === 'mini' ? '3px' : '4px',
-                minWidth: mode === 'mini' ? '3px' : '4px',
+                boxShadow: isSpeaking && value > 10
+                    ? `0 0 12px ${barColor ? 'rgba(255,255,255,0.55)' : theme.glow}`
+                    : 'none',
+                width: `${barWidth ?? (mode === 'mini' ? 3 : 4)}px`,
+                transformOrigin: 'bottom',
+                animation: isSpeaking ? 'none' : `bar-idle-wave 2.4s ease-in-out ${idleDelay} infinite`,
+                minWidth: `${barWidth ?? (mode === 'mini' ? 3 : 4)}px`,
             }}
-            className="rounded-full relative z-10 flex-shrink-0"
+            className="rounded-full relative z-10 shrink-0"
         >
-            {/* Glossy overlay */}
-            <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            {/* Glossy overlay — softer (white-glass) when a custom barColor is used */}
+            <div className={`absolute inset-0 w-full h-full rounded-full pointer-events-none bg-linear-to-t ${barColor ? 'from-white/30' : 'from-black/20'} to-transparent`} />
         </motion.div>
     );
 };
