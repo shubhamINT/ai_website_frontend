@@ -9,7 +9,7 @@ fi
 
 # Update the code from git
 echo "Pulling latest code..."
-git pull origin main
+git pull origin vaani_fe_v2
 
 # Build and run
 echo "Building and starting services..."
